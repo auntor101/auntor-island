@@ -16,15 +16,21 @@
       { label: 'Sunrise', shirt: '#ff9a4d', pants: '#5a4038', hair: '#8a3b2a', scarf: '#ffffff' },
     ],
   };
-  // shortcut: tiny blocklist that misses creative spellings, extend it if abuse shows up in analytics
-  const BLOCK = ['fuck', 'shit', 'cunt', 'nigg', 'rape', 'nazi'];
+  // shortcut: tiny whole-word blocklist that misses creative spellings, extend it if abuse shows up in analytics
+  const BLOCK = ['fuck', 'fucking', 'fucker', 'fuckface', 'shit', 'shitty', 'cunt', 'nigg', 'nigga', 'nigger', 'rape', 'rapist', 'nazi'];
+
+  function blocked(s) {
+    const words = s.toLowerCase().split(/[^a-z]+/).filter(Boolean);
+    if (words.some(w => BLOCK.includes(w))) return true;
+    // spaced-out single letters ("F u c k") are joined and tested as one word
+    return words.length >= 3 && words.every(w => w.length === 1) && BLOCK.includes(words.join(''));
+  }
 
   function sanitizeName(raw) {
     let s = typeof raw === 'string' ? raw : '';
-    s = s.replace(/[\u0000-\u001f\u007f-\u009f<>]/g, '').replace(/\s+/g, ' ').trim();
+    s = s.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060-\u2069\ufeff<>]/g, '').replace(/\s+/g, ' ').trim();
     s = Array.from(s).slice(0, MAXLEN).join('').trim();
-    const flat = s.toLowerCase().replace(/[^a-z]/g, '');
-    if (!s || BLOCK.some(b => flat.includes(b))) return FALLBACK;
+    if (!s || blocked(s)) return FALLBACK;
     return s;
   }
   const idx = (v, n) => (Number.isInteger(v) && v >= 0 && v < n ? v : 0);

@@ -143,7 +143,7 @@ function makeChar(o){
     const sc=M(new THREE.TorusGeometry(.26,.075,8,18),toon(o.scarf),0,1.14,0,body);sc.rotation.x=Math.PI/2;ol(sc,1.08);
     const tail=M(G.box,toon(o.scarf),.12,1.0,-.22,body);tail.scale.set(.1,.26,.05);tail.rotation.z=.25;}
   if(st==='player'&&o.gender==='f'){const bk=M(G.sph,toon(H),0,-.1,-.15,head);bk.scale.set(.36,.42,.24);ol(bk,1.05);
-    const pt=M(G.cone,toon(H),0,-.14,-.36,head);pt.scale.set(.1,.34,.1);pt.rotation.x=2.7;ol(pt,1.06);}
+    const pt=M(G.cone,toon(H),0,-.14,-.36,head);pt.scale.set(.1,.34,.1);pt.rotation.x=-2.7;ol(pt,1.06);}
   if(st==='mira'){const h=M(G.sph,toon(H),0,-.04,-.07,head);h.scale.set(.4,.43,.36);ol(h,1.05);
     const br=M(G.cyl,toon(o.hat),0,.26,0,head);br.scale.set(.64,.035,.64);br.rotation.x=-.12;ol(br,1.05);
     const cr=M(G.cyl,toon(o.hat),0,.37,-.03,head);cr.scale.set(.31,.22,.31);ol(cr,1.06);
@@ -799,7 +799,7 @@ if(window.ResizeObserver)new ResizeObserver(resize).observe(canvas);window.addEv
 refreshQuest();
 requestAnimationFrame(frame);
 const go=$('go');go.disabled=false;$('loadmsg').textContent=TOUCH?'Best with sound on.':'Best with sound on · WASD or arrows to walk';
-go.addEventListener('click',()=>{if(started)return;if(LI.beforeStart)LI.beforeStart();started=true;audioInit();$('start').classList.add('gone');
+go.addEventListener('click',()=>{if(started)return;try{if(LI.beforeStart)LI.beforeStart();}catch(e){console.error(e);}started=true;audioInit();$('start').classList.add('gone');
   yaw=0;pitch=.36;const pEnd=followPos(V3()),lEnd=headPos(V3());mode='cut';
   startCut({dur:2.4,p0:camera.position.clone(),p1:pEnd,l0:camLook.clone(),l1:lEnd,done:()=>{mode='play';setUI(true);
     if(TOUCH){$('joyHint').hidden=false;setTimeout(()=>$('joyHint').style.opacity=0,7000);}else{$('keys').hidden=false;$('actKey').hidden=false;setTimeout(()=>$('keys').style.opacity=0,9000);}

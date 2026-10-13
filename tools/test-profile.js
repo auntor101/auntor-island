@@ -11,6 +11,10 @@ assert.strictEqual(P.sanitizeName(null), 'Traveler');
 assert.strictEqual(P.sanitizeName(42), 'Traveler');
 assert.strictEqual(P.sanitizeName('F u c k'), 'Traveler');
 assert.strictEqual(P.sanitizeName("O'Brien"), "O'Brien");
+for (const n of ['Nazia', 'Nazim', 'Nazir', 'Shital', 'Ashita', 'Grape', 'Scunthorpe', 'Ana Zip']) assert.strictEqual(P.sanitizeName(n), n, n + ' should be kept');
+for (const n of ['fuck', 'F u c k', 'Fucker', 'nazi', 'SHIT']) assert.strictEqual(P.sanitizeName(n), 'Traveler', n + ' should be blocked');
+assert.strictEqual(P.sanitizeName('\u200b\u200b'), 'Traveler');
+assert.strictEqual(P.sanitizeName('Ann\u202e'), 'Ann');
 assert.strictEqual(Array.from(P.sanitizeName('😀😀😀😀😀😀😀😀😀😀😀😀😀😀')).length, 12);
 
 // normalize
