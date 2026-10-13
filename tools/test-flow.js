@@ -5,8 +5,9 @@ const vm = require('vm'), fs = require('fs'), path = require('path');
 const THREE = require('three');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
-const code = scripts[scripts.length - 1][1];
+// UI-only files need a real DOM, which the headless stub does not provide.
+const UI_ONLY = ['js/charselect.js'];
+const files = [...html.matchAll(/<script src="(js\/[^"]+)"><\/script>/g)].map(m => m[1]).filter(f => !UI_ONLY.includes(f));
 
 let maxObjects = 0;
 class FakeRenderer {
@@ -34,7 +35,7 @@ const ctx = { THREE, performance, setTimeout, clearTimeout, setInterval, Math,
   matchMedia: () => ({ matches: process.argv[2] === 'touch' }), addEventListener() {} };
 ctx.window = ctx;
 vm.createContext(ctx);
-vm.runInContext(code, ctx);
+for (const f of files) vm.runInContext(fs.readFileSync(path.join(__dirname, '..', f), 'utf8'), ctx, { filename: f });
 
 const L = ctx.__lumen; let now = 1000;
 const step = n => { for (let i = 0; i < n; i++) { now += 16.7; L.step(now); } };
