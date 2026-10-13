@@ -78,9 +78,9 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 /* overlays */
 #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .35s}
 #flash.on{opacity:1}
-#start{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:0 24px calc(env(safe-area-inset-bottom,0px) + 40px);background:linear-gradient(180deg,rgba(27,21,48,0) 30%,rgba(27,21,48,.72) 100%);color:#fff;transition:opacity .6s}
+#start{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-start;padding:0 24px calc(env(safe-area-inset-bottom,0px) + 40px);background:linear-gradient(180deg,rgba(27,21,48,0) 30%,rgba(27,21,48,.72) 100%);color:#fff;transition:opacity .6s}
 #start.gone{opacity:0;pointer-events:none}
-#start .inner{max-width:560px;display:flex;flex-direction:column;gap:12px}
+#start .inner{margin-top:auto;max-width:560px;display:flex;flex-direction:column;gap:12px}
 .eyebrow{font-weight:800;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:0}
 #start h1{font:600 italic clamp(56px,13vw,108px)/.9 var(--display);margin:0;letter-spacing:-.02em;text-shadow:0 4px 30px rgba(255,180,120,.45)}
 #start p.sub{margin:0;font-size:17px;line-height:1.5;font-weight:700;max-width:44ch;color:rgba(255,255,255,.9)}

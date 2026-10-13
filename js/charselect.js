@@ -15,14 +15,21 @@
     b.addEventListener('click', onclick);
     return b;
   }
+  function sync(el, sel) {
+    [...el.children].forEach((b, j) => { const on = j === sel; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+  }
+  function buildLooks() {
+    looksEl.textContent = '';
+    P.LOOKS[cur.gender].forEach((l, i) => looksEl.appendChild(swatch(l.shirt, i === cur.look, l.label + ' outfit', () => { cur.look = i; sync(looksEl, cur.look); })));
+  }
+  skinsEl.textContent = '';
+  P.SKINS.forEach((c, i) => skinsEl.appendChild(swatch(c, i === cur.skin, 'Skin tone ' + (i + 1), () => { cur.skin = i; sync(skinsEl, cur.skin); })));
   function render() {
     genderBtns.forEach(b => {
       const on = b.dataset.g === cur.gender;
       b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
-    looksEl.textContent = ''; skinsEl.textContent = '';
-    P.LOOKS[cur.gender].forEach((l, i) => looksEl.appendChild(swatch(l.shirt, i === cur.look, l.label + ' outfit', () => { cur.look = i; render(); })));
-    P.SKINS.forEach((c, i) => skinsEl.appendChild(swatch(c, i === cur.skin, 'Skin tone ' + (i + 1), () => { cur.skin = i; render(); })));
+    buildLooks();
   }
   genderBtns.forEach(b => b.addEventListener('click', () => { cur.gender = b.dataset.g; cur.look = 0; render(); }));
   nameIn.value = cur.name === 'Traveler' ? '' : cur.name;
