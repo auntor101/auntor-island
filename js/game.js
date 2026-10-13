@@ -507,7 +507,7 @@ function exitGlobe(){
     camera.position.copy(Gc).addScaledVector(out,HUB.GR*1.07);camLook.copy(Gc);camera.fov=baseFov-7;camera.updateProjectionMatrix();camera.lookAt(camLook);
     const pEnd=followPos(V3()),lEnd=headPos(V3());
     flashTo(false);
-    startCut({dur:2.2,p0:camera.position.clone(),p1:pEnd,l0:Gc.clone(),l1:lEnd,f0:baseFov-7,f1:baseFov,ease:easeOut,done:()=>{mode='play';setUI(true);refreshQuest();note('Back on Lumen Isle');}});
+    startCut({dur:2.2,p0:camera.position.clone(),p1:pEnd,l0:Gc.clone(),l1:lEnd,f0:baseFov-7,f1:baseFov,ease:easeOut,done:()=>{mode='play';setUI(true);refreshQuest();note('Back on Auntor Island');}});
   });
 }
 function setWorld(W){
@@ -637,7 +637,7 @@ function setAct(it){curInter=it;if(it){actLabel.textContent=it.label();actEl.cla
 actEl.addEventListener('click',e=>{e.stopPropagation();if(curInter&&mode==='play')curInter.act();});
 function showEnd(){if($('end').classList.contains('on'))return;
   const st=$('endStars');st.innerHTML='';for(let i=0;i<3;i++){const s=document.createElement('span');s.textContent='★';if(i>=S.stars)s.className='dim';st.appendChild(s);}
-  $('endText').textContent=(S.stars<3?'You found '+S.stars+' of 3 stars. Someone on the island still needs your help. ':'')+'In the real version, DM this word to @yourhandle for a surprise.';
+  $('endText').textContent=(S.stars<3?'You found '+S.stars+' of 3 stars. Someone on the island still needs your help. ':'')+'In the real version, DM this word to @101auntojje for a surprise.';
   $('end').classList.add('on');$('end').setAttribute('aria-hidden','false');}
 $('endBtn').addEventListener('click',()=>{$('end').classList.remove('on');$('end').setAttribute('aria-hidden','true');});
 const flashEl=$('flash');
@@ -803,6 +803,6 @@ go.addEventListener('click',()=>{if(started)return;try{if(LI.beforeStart)LI.befo
   yaw=0;pitch=.36;const pEnd=followPos(V3()),lEnd=headPos(V3());mode='cut';
   startCut({dur:2.4,p0:camera.position.clone(),p1:pEnd,l0:camLook.clone(),l1:lEnd,done:()=>{mode='play';setUI(true);
     if(TOUCH){$('joyHint').hidden=false;setTimeout(()=>$('joyHint').style.opacity=0,7000);}else{$('keys').hidden=false;$('actKey').hidden=false;setTimeout(()=>$('keys').style.opacity=0,9000);}
-    note('Welcome to Lumen Isle');}});});
+    note('Welcome to Auntor Island, '+LI.profile.name);}});});
 window.__lumen={S,P,NPC,talk,enterGlobe,exitGlobe,pick,advance,get dlg(){return dlgState;},get mode(){return mode;},get world(){return world===HUB?'hub':'inner';},LI,say,applyProfile,HUB,INNER,step:frame};
 })();

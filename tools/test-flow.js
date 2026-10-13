@@ -62,6 +62,7 @@ function expect(cond, msg) { if (!cond) { console.log('FAIL:', msg); process.exi
   L.applyProfile({ gender: 'f', name: 'Sam', look: 1, skin: 2 });
   els.go._l.click(); step(200);
   expect(L.mode === 'play', 'start button drops the player into the world');
+  expect(els.note.textContent === 'Welcome to Auntor Island, Sam', 'the welcome line names the island and the player');
   tp(-6.4, 0.6); step(10); let p = L.talk(L.NPC.mira); await drive(); await p;
   expect(L.S.mira === 'active', 'Mira gives the firefly quest');
   for (const f of L.HUB.fireflies) { tp(f.g.position.x, f.g.position.z); step(3); }

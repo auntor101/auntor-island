@@ -75,7 +75,7 @@ The script is divided by `/* ===== ... ===== */` banners, in this order:
 - Remove these hooks before a public launch if you like; nothing else depends on them.
 
 ## TODO before going live
-- Replace `@yourhandle` in `index.html` (start screen and end card) with the real Instagram handle.
+- Instagram handle is set to `@101auntojje` (start screen, end card in `index.html` and `js/game.js`). The game is branded "Auntor Island"; the repo and package keep the internal name lumen-isle.
 - Choose the real secret word (currently `LUMEN`, in the fox script and the end card).
 - Replace the primitive characters with rigged, animated models; GLB with GLTFLoader is the natural next step.
 - Add a share-card image export and a social preview image (`og:image`).
