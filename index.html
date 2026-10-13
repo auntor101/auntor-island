@@ -88,6 +88,16 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 #go:hover{transform:translateY(-2px)}
 #go:disabled{opacity:.6;cursor:default}
 #loadmsg{font-size:13px;font-weight:700;color:rgba(255,255,255,.75);margin:0}
+#start{overflow-y:auto}
+#pick{display:flex;flex-direction:column;gap:10px;align-self:flex-start;background:rgba(255,247,234,.94);color:var(--ink);border-radius:20px;padding:14px;width:min(360px,100%);box-sizing:border-box;box-shadow:0 14px 30px -12px rgba(0,0,0,.5)}
+#pick .seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--paper-2);border-radius:999px;padding:4px}
+#pick .seg button{min-height:44px;border:0;border-radius:999px;background:transparent;color:var(--ink);font-weight:800;font-size:15px}
+#pick .seg button.on{background:var(--coral);color:#fff}
+#pname{min-height:44px;box-sizing:border-box;border:2px solid rgba(42,31,61,.18);border-radius:14px;padding:0 14px;font:800 16px var(--body);color:var(--ink);background:#fff;-webkit-user-select:text;user-select:text}
+#pname:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+#pick .sws{display:flex;gap:10px}
+#pick .sw{width:44px;height:44px;border-radius:50%;border:3px solid transparent;box-shadow:0 0 0 2px rgba(42,31,61,.18);padding:0}
+#pick .sw.on{border-color:var(--ink)}
 #end{position:absolute;inset:0;display:grid;place-items:center;background:rgba(27,21,48,.55);padding:16px;opacity:0;pointer-events:none;transition:opacity .4s}
 #end.on{opacity:1;pointer-events:auto}
 .card{background:var(--paper);border-radius:26px;padding:26px 24px 22px;width:min(400px,100%);box-sizing:border-box;text-align:center;box-shadow:0 30px 70px -20px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:10px;align-items:center}
@@ -145,6 +155,15 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
       <p class="eyebrow">A tiny world by @yourhandle</p>
       <h1>Lumen Isle</h1>
       <p class="sub">Wander the island, help the villagers, answer a few riddles, and find out what is hiding inside the snow globe on the hill.</p>
+      <div id="pick" role="group" aria-label="Choose your character">
+        <div class="seg" role="group" aria-label="Character">
+          <button type="button" data-g="m" aria-pressed="true">Male</button>
+          <button type="button" data-g="f" aria-pressed="false">Female</button>
+        </div>
+        <input id="pname" type="text" maxlength="12" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Your name" aria-label="Your name">
+        <div class="sws" id="looks" aria-label="Outfit"></div>
+        <div class="sws" id="skins" aria-label="Skin tone"></div>
+      </div>
       <button id="go" type="button" disabled>Enter the island</button>
       <p id="loadmsg">Building the island…</p>
     </div>
