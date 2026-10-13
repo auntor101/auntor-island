@@ -64,9 +64,13 @@
       const man = await A.manifest('nature');
       const models = await Promise.all(TREES.map(n => A.model('nature', n)));
       if (!man || models.some(m => !m)) return false;
-      const tex = {};
-      for (const [mat, file] of Object.entries(man)) { tex[mat] = await A.texture('nature', file); if (!tex[mat]) return false; }
       const prefabs = models.map(parts);
+      const used = [...new Set(prefabs.flat().map(pt => pt.matName))]; // only the textures the trees need (not the bush's)
+      if (used.some(m => !man[m])) return false;
+      const loaded = await Promise.all(used.map(m => A.texture('nature', man[m])));
+      if (loaded.some(t => !t)) return false;
+      const tex = {};
+      used.forEach((m, i) => { tex[m] = loaded[i]; });
       const n = Math.min(o.spots.length, LI.gfx.Q.natureTrees);
       const mats = {}, buckets = {};
       const matFor = (name, season) => {
