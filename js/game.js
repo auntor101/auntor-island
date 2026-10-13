@@ -142,6 +142,8 @@ function makeChar(o){
     const t=M(G.cone,toon(H),.08,.36,.06,head);t.scale.set(.09,.16,.09);t.rotation.z=-.5;
     const sc=M(new THREE.TorusGeometry(.26,.075,8,18),toon(o.scarf),0,1.14,0,body);sc.rotation.x=Math.PI/2;ol(sc,1.08);
     const tail=M(G.box,toon(o.scarf),.12,1.0,-.22,body);tail.scale.set(.1,.26,.05);tail.rotation.z=.25;}
+  if(st==='player'&&o.gender==='f'){const bk=M(G.sph,toon(H),0,-.1,-.15,head);bk.scale.set(.36,.42,.24);ol(bk,1.05);
+    const pt=M(G.cone,toon(H),0,-.14,-.36,head);pt.scale.set(.1,.34,.1);pt.rotation.x=2.7;ol(pt,1.06);}
   if(st==='mira'){const h=M(G.sph,toon(H),0,-.04,-.07,head);h.scale.set(.4,.43,.36);ol(h,1.05);
     const br=M(G.cyl,toon(o.hat),0,.26,0,head);br.scale.set(.64,.035,.64);br.rotation.x=-.12;ol(br,1.05);
     const cr=M(G.cyl,toon(o.hat),0,.37,-.03,head);cr.scale.set(.31,.22,.31);ol(cr,1.06);
