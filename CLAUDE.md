@@ -8,19 +8,22 @@ Most visitors arrive on a phone, inside Instagram's in-app browser. Every change
 ## Run it
 - `npx serve .` (or `python3 -m http.server 8080`), then open http://localhost:3000 (or :8080).
 - Opening `index.html` straight from the file system also works; a local server is still preferred.
-- `npm install` then `npm test` runs the headless quest-flow test (`tools/test-flow.js`).
+- `npm install` then `npm test` runs the profile unit test (`tools/test-profile.js`) and the headless quest-flow test (`tools/test-flow.js`). The flow test loads the `js/` script tags from `index.html` in order, skipping `js/charselect.js`.
 - `npm run shots` renders screenshots with Puppeteer into `tools/shots/` (desktop and phone sizes).
 
 ## Files
-- `index.html`: the whole game. Its CSS, HTML UI and one inline `<script>` live in this single file.
+- `index.html`: the CSS, the HTML UI and the script tags.
+- `js/game.js`: the whole game (the old inline script, unchanged in structure). Its banner sections are described below.
+- `js/profile.js`: player profile validation and appearance data (pure, unit-tested by `tools/test-profile.js`).
+- `js/charselect.js`: the start-screen character-select UI. It talks to the game only through `window.LI`.
 - `vendor/three/`: three.js r128 and the post-processing files it uses (EffectComposer, RenderPass, ShaderPass, UnrealBloomPass, CopyShader, LuminosityHighPassShader, FXAAShader). These are the classic `examples/js` global-script builds, not ES modules, and they attach to `window.THREE`.
 - `concepts/five-worlds.html`: the earlier five-concept sketch demo, kept for reference.
 - `docs/brainstorm.md`: idea backlog (portal worlds, NPCs, question types, Instagram loop).
 - `tools/`: the headless test and the screenshot script.
 - `netlify.toml`: deploy config.
 
-## How `index.html` is organised
-The `<script>` is divided by `/* ===== ... ===== */` banners, in this order:
+## How `js/game.js` is organised
+The script is divided by `/* ===== ... ===== */` banners, in this order:
 1. **setup**: quality profile `Q` (touch devices get fewer grass blades and a lower pixel ratio), math helpers, renderer, cameras.
 2. **shared look**: the toon ramp texture `GRAD`, the `toon()` and `basic()` material caches, `ol()` for ink outlines (a back-face hull), `blob()` for soft blob shadows, `glowSprite()`, `makeSky()`, `makeTerrain()`, `particles()`, `grassField()` (instanced blades with wind and a player-push shader), and `forest()` (instanced trees).
 3. **characters**: `makeChar(opts)` builds a chibi villager from primitives, with styles `player`, `mira`, `tobi` and `pip`; `makeFox()` builds the fox; `marker()` is the floating "!" quest marker.
@@ -36,6 +39,9 @@ The `<script>` is divided by `/* ===== ... ===== */` banners, in this order:
 13. **per-frame**: updates for the player, NPCs, labels and interaction prompts.
 14. **post-processing**: RenderPass, then UnrealBloom, then a grade pass (exposure, saturation, vignette), then FXAA.
 15. **boot**.
+
+## The `LI` bridge
+`window.LI` is how UI files talk to the game: `LI.profile` (current player profile), `LI.applyProfile(p)` (rebuilds the player), `LI.beforeStart` (called when Enter is pressed). Dialogue text may contain `{name}`, which `say()` replaces with the player's name.
 
 ## How the "zoom into another world" effect works
 - The inner world is rendered every frame into `portalRT` from `innerCam`. The globe's shader samples that texture in screen space (`gl_FragCoord / uRes`), so the glass behaves like a window into the other scene.

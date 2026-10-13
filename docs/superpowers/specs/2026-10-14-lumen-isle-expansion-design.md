@@ -17,7 +17,7 @@ Grow Lumen Isle from a small quest island into a phone-first anime open world: p
 - Mungdi is a ramen-style noodle dish, so it is the signature dish of the Mungdi Noodle House (replaces a generic ramen bar).
 
 ## Architecture
-`index.html` keeps the CSS, HTML and boot. The inline script is split along its existing banners into `js/*.js`, loaded in order: `core.js` (setup, look helpers), `characters.js`, `hub.js`, `inner.js`, `avatar.js`, `world-coast.js`, `venues.js`, `vehicles.js`, `activities.js`, `festivals.js`, `banter.js`, `ui.js`, `audio.js`, `input.js`, `analytics.js`, `main.js`. Debug hooks `window.__lumen` stay. The existing world shape (`scene, sky, h, walk, colliders, npcs, inter, update`) is reused for new zones.
+`index.html` keeps the CSS, HTML and script tags. The original inline script lives unchanged in `js/game.js`; each new feature gets its own file under `js/` and talks to the game through the small `window.LI` bridge. This avoids the shared-scope problems of cutting the old script apart.
 
 ## Features
 1. **Character select:** male/female, name (max 12 chars, set via `textContent` only, stored on device), hair/outfit presets.
