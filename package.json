@@ -1,0 +1,15 @@
+{
+  "name": "lumen-isle",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A tiny 3D world for an Instagram bio link",
+  "scripts": {
+    "dev": "npx serve .",
+    "test": "node tools/test-flow.js",
+    "shots": "node tools/screenshot.js"
+  },
+  "devDependencies": {
+    "three": "0.128.0",
+    "puppeteer": "^23.0.0"
+  }
+}
