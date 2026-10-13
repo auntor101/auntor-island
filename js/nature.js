@@ -6,9 +6,9 @@
   const TREES = ['CommonTree_3', 'CommonTree_4', 'CommonTree_5'];
   const TREE_H = 4.4; // world height of a scale-1 tree, about the old blob trees
   const SEASONS = {
-    summer: { hue: 0, sat: 1.0, tint: [1, 1, 1] },
-    autumn: { hue: -1.62, sat: 1.25, tint: [1, .95, .9] },
-    spring: { hue: -2.6, sat: .95, tint: [1, .97, 1] },
+    summer: { hue: .45, sat: 1.1, tint: [1.1, 1.15, 1.05] },
+    autumn: { hue: -.75, sat: 1.2, tint: [1.3, 1.15, 1] },
+    spring: { hue: -1.55, sat: .3, tint: [2.8, 2.2, 2.5] },
   };
   const HUE_GLSL = 'vec3 hueRot(vec3 c,float a){const vec3 k=vec3(.57735);float ca=cos(a),sa=sin(a);return c*ca+cross(k,c)*sa+k*dot(k,c)*(1.-ca);}';
 
@@ -48,6 +48,7 @@
   // Zero-scales the first n instances of the built-in forest so the new trees replace them (blob shadows stay).
   function hideProcedural(f, n) {
     if (!f) return;
+    if (n >= f.trunk.count) { f.trunk.visible = f.fol.visible = f.folO.visible = false; return; } // all replaced: skip their draw calls
     const z = new THREE.Matrix4().makeScale(0, 0, 0);
     for (let i = 0; i < n; i++) {
       f.trunk.setMatrixAt(i, z);
@@ -82,14 +83,15 @@
           (buckets[key] = buckets[key] || { part, season, list: [] }).list.push(place.clone().multiply(part.local));
         });
       });
-      const col = new THREE.Color();
+      const col = new THREE.Color(), group = new THREE.Group();
       for (const b of Object.values(buckets)) {
         const im = new THREE.InstancedMesh(b.part.geo, matFor(b.part.matName, b.season), b.list.length);
-        b.list.forEach((m, k) => { im.setMatrixAt(k, m); col.setHSL(0, 0, .9 + ((k * 37) % 10) / 50); im.setColorAt(k, col); });
+        b.list.forEach((m, k) => { im.setMatrixAt(k, m); col.setHSL(0, 0, .82 + ((k * 37) % 10) / 55); im.setColorAt(k, col); });
         im.frustumCulled = false;
-        o.scene.add(im);
+        group.add(im);
       }
-      hideProcedural(o.forest, n);
+      o.scene.add(group);
+      try { hideProcedural(o.forest, n); } catch (err) { o.scene.remove(group); throw err; }
       return true;
     } catch (e) {
       console.warn('nature upgrade failed:', e && e.message);

@@ -8,7 +8,7 @@ if(!window.THREE){$('loadmsg').textContent='The 3D engine could not load. Check 
 const canvas=$('gl');
 const TOUCH=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 const DPR=window.devicePixelRatio||1;
-const Q=TOUCH?{grass:3800,pr:Math.min(DPR,1.5),seg:110,motes:120,snow:900,portalNear:26,natureTrees:20}:{grass:9000,pr:Math.min(DPR,1.75),seg:150,motes:220,snow:1500,portalNear:40,natureTrees:36};
+const Q=TOUCH?{grass:3800,pr:Math.min(DPR,1.5),seg:110,motes:120,snow:900,portalNear:26,natureTrees:99}:{grass:9000,pr:Math.min(DPR,1.75),seg:150,motes:220,snow:1500,portalNear:40,natureTrees:99};
 
 const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
 const sm=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t);};
@@ -284,7 +284,7 @@ function buildHub(){
     sc.add(posts,lamps,caps);}
   // trees
   const r=rng(42),spots=[];let tries=0;
-  while(spots.length<(TOUCH?32:44)&&tries<4000){tries++;const a=r()*6.28,d=9+r()*16.5,x=Math.cos(a)*d,z=Math.sin(a)*d;
+  while(spots.length<(TOUCH?16:44)&&tries<4000){tries++;const a=r()*6.28,d=9+r()*16.5,x=Math.cos(a)*d,z=Math.sin(a)*d;
     if(hubH(x,z)<1||pathDist(x,z)<2.4||Math.hypot(x-HILL.x,z-HILL.z)<4.5)continue;
     if(col.some(c=>Math.hypot(x-c.x,z-c.z)<c.r+2.2))continue;if(spots.some(s=>Math.hypot(x-s.x,z-s.z)<2.6))continue;
     if(Math.hypot(x+5.5,z+3.4)<3.5)continue;
