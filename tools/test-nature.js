@@ -14,5 +14,16 @@ assert.strictEqual(A.available(), false, 'no GLTFLoader means unavailable');
   assert.strictEqual(await A.model('nature', 'CommonTree_3'), null, 'model resolves null when unavailable');
   assert.strictEqual(await A.manifest('nature'), null, 'manifest resolves null when unavailable');
   assert.strictEqual(await A.texture('nature', 'tex/x.webp'), null, 'texture resolves null when unavailable');
+  // js/nature.js: season zones by angle around the island centre
+  const nctx = { console, window: null, THREE: {} };
+  nctx.window = nctx;
+  vm.createContext(nctx);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', 'nature.js'), 'utf8'), nctx, { filename: 'js/nature.js' });
+  const N = nctx.LI.nature;
+  assert.strictEqual(N.seasonAt(10, 1), 'summer');     // angle ~0.1 rad
+  assert.strictEqual(N.seasonAt(-5, 8), 'autumn');     // angle ~2.1+ rad
+  assert.strictEqual(N.seasonAt(-8, -5), 'autumn');    // angle ~3.7 rad
+  assert.strictEqual(N.seasonAt(3, -10), 'spring');    // angle ~5.0 rad
+  assert.strictEqual(await N.upgradeHub({ scene: {}, spots: [], forest: null, h: () => 0 }), false, 'upgrade is a no-op without a loader');
   console.log('nature tests ok');
 })().catch(e => { console.error(e); process.exit(1); });

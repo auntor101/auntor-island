@@ -8,7 +8,7 @@ if(!window.THREE){$('loadmsg').textContent='The 3D engine could not load. Check 
 const canvas=$('gl');
 const TOUCH=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 const DPR=window.devicePixelRatio||1;
-const Q=TOUCH?{grass:3800,pr:Math.min(DPR,1.5),seg:110,motes:120,snow:900,portalNear:26}:{grass:9000,pr:Math.min(DPR,1.75),seg:150,motes:220,snow:1500,portalNear:40};
+const Q=TOUCH?{grass:3800,pr:Math.min(DPR,1.5),seg:110,motes:120,snow:900,portalNear:26,natureTrees:20}:{grass:9000,pr:Math.min(DPR,1.75),seg:150,motes:220,snow:1500,portalNear:40,natureTrees:36};
 
 const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
 const sm=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t);};
@@ -116,7 +116,7 @@ function forest(parent,spots,hFn,o){
       m4.compose(p,q,sc.set(r*(b[4]||1)*1.06+.04,r*(b[5]||.92)*1.06+.04,r*(b[4]||1)*1.06+.04));folO.setMatrixAt(i*per+k,m4);
       col.set(o.colors[(i+k)%o.colors.length]);if(b[6])col.set(b[6]);fol.setColorAt(i*per+k,col);});
     m4.compose(p.set(t.x,y+.05,t.z),flat,sc.set(1.7*t.s,1.7*t.s,1));sh.setMatrixAt(i,m4);});
-  parent.add(trunk,fol,folO,sh);
+  parent.add(trunk,fol,folO,sh);return {trunk,fol,folO,sh,per};
 }
 
 /* ================= characters ================= */
@@ -289,7 +289,7 @@ function buildHub(){
     if(col.some(c=>Math.hypot(x-c.x,z-c.z)<c.r+2.2))continue;if(spots.some(s=>Math.hypot(x-s.x,z-s.z)<2.6))continue;
     if(Math.hypot(x+5.5,z+3.4)<3.5)continue;
     const s=.85+r()*.5;spots.push({x,z,s,rot:r()*6});col.push({x,z,r:.45*s});}
-  forest(sc,spots,hubH,{trunk:'#8a5d44',colors:['#5fae6b','#74c274','#4f9e66','#88c96e'],blobs:[[0,2.4,0,1.3],[.75,1.85,.3,.9],[-.65,1.95,-.35,.92],[.1,3.2,-.1,.75]]});
+  const treeForest=forest(sc,spots,hubH,{trunk:'#8a5d44',colors:['#5fae6b','#74c274','#4f9e66','#88c96e'],blobs:[[0,2.4,0,1.3],[.75,1.85,.3,.9],[-.65,1.95,-.35,.92],[.1,3.2,-.1,.75]]});
   // rocks + flowers
   {const rr=rng(7),n=16,rocks=new THREE.InstancedMesh(G.dode,toon('#b3a6c3'),n),ro=new THREE.InstancedMesh(G.dode,OUTM,n);const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),p=new THREE.Vector3(),s=new THREE.Vector3();let k=0;
     while(k<n){const a=rr()*6.28,d=8+rr()*19,x=Math.cos(a)*d,z=Math.sin(a)*d;if(pathDist(x,z)<2||col.some(c=>Math.hypot(x-c.x,z-c.z)<c.r+1))continue;const sz=.35+rr()*.55;e.set(rr()*3,rr()*3,0);q.setFromEuler(e);
@@ -353,6 +353,7 @@ function buildHub(){
     W.moonflowers.forEach((m,i)=>{const tgt=S.mira==='done'?1:.35;const k=lerp(m.head.scale.x,tgt,damp(2,dt));m.head.scale.setScalar(k);m.gl.material.opacity=S.mira==='done'?.5+Math.sin(t*2+i)*.15:0;m.head.rotation.y+=dt*.2;});
     W.portalMat.uniforms.uCloud.value=lerp(W.portalMat.uniforms.uCloud.value,S.lens?0:1,damp(1.5,dt));
   };
+  W.forestInfo=treeForest;W.treeSpots=spots;
   return W;
 }
 
@@ -782,6 +783,7 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(window.__maxD
   updatePuffs(dt);updateCamera(dt);updateInteract();updateLabels();render();}
 
 /* ================= boot ================= */
+LI.gfx={GRAD,Q,TOUCH};
 HUB=buildHub();INNER=buildInner();HUB.portalMat.uniforms.tPortal.value=portalRT.texture;
 function store(){try{return window.localStorage;}catch(e){return null;}}
 function applyProfile(p){
@@ -798,11 +800,12 @@ setWorld(HUB);
 if(window.ResizeObserver)new ResizeObserver(resize).observe(canvas);window.addEventListener('resize',resize);resize();
 refreshQuest();
 requestAnimationFrame(frame);
+if(LI.nature)LI.nature.upgradeHub({scene:HUB.scene,spots:HUB.treeSpots,forest:HUB.forestInfo,h:hubH});
 const go=$('go');go.disabled=false;$('loadmsg').textContent=TOUCH?'Best with sound on.':'Best with sound on · WASD or arrows to walk';
 go.addEventListener('click',()=>{if(started)return;try{if(LI.beforeStart)LI.beforeStart();}catch(e){console.error(e);}started=true;audioInit();$('start').classList.add('gone');
   yaw=0;pitch=.36;const pEnd=followPos(V3()),lEnd=headPos(V3());mode='cut';
   startCut({dur:2.4,p0:camera.position.clone(),p1:pEnd,l0:camLook.clone(),l1:lEnd,done:()=>{mode='play';setUI(true);
     if(TOUCH){$('joyHint').hidden=false;setTimeout(()=>$('joyHint').style.opacity=0,7000);}else{$('keys').hidden=false;$('actKey').hidden=false;setTimeout(()=>$('keys').style.opacity=0,9000);}
     note('Welcome to Auntor Island, '+LI.profile.name);}});});
-window.__lumen={S,P,NPC,talk,enterGlobe,exitGlobe,pick,advance,get dlg(){return dlgState;},get mode(){return mode;},get world(){return world===HUB?'hub':'inner';},LI,say,applyProfile,HUB,INNER,step:frame};
+window.__lumen={renderer,S,P,NPC,talk,enterGlobe,exitGlobe,pick,advance,get dlg(){return dlgState;},get mode(){return mode;},get world(){return world===HUB?'hub':'inner';},LI,say,applyProfile,HUB,INNER,step:frame};
 })();
