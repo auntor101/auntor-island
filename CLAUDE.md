@@ -16,6 +16,12 @@ Most visitors arrive on a phone, inside Instagram's in-app browser. Every change
 - `js/game.js`: the whole game (the old inline script, unchanged in structure). Its banner sections are described below.
 - `js/profile.js`: player profile validation and appearance data (pure, unit-tested by `tools/test-profile.js`).
 - `js/charselect.js`: the start-screen character-select UI. It talks to the game only through `window.LI`.
+- `js/assets.js`: fail-soft GLB loader `LI.assets` (`available`, `model`, `manifest`, `texture`). Missing or failed files leave the built-in primitives in place.
+- `js/nature.js`: seasonal tree instancing `LI.nature`. It swaps the blob trees on the hub for Quaternius models once they load.
+- `assets/`: shipped, optimised models and textures. `assets/nature/` holds the trees, bush and their `manifest.json`.
+- `assets/CREDITS.md`: licences and sources for every shipped asset. Update it with any new asset.
+- `assets-src/`: git-ignored raw source packs. Keep the originals here, not in git.
+- `tools/prepare-assets.js`: `npm run prepare-assets` regenerates `assets/nature/` from `assets-src/nature-kit`.
 - `vendor/three/`: three.js r128 and the post-processing files it uses (EffectComposer, RenderPass, ShaderPass, UnrealBloomPass, CopyShader, LuminosityHighPassShader, FXAAShader). These are the classic `examples/js` global-script builds, not ES modules, and they attach to `window.THREE`.
 - `concepts/five-worlds.html`: the earlier five-concept sketch demo, kept for reference.
 - `docs/brainstorm.md`: idea backlog (portal worlds, NPCs, question types, Instagram loop).
@@ -68,6 +74,19 @@ The script is divided by `/* ===== ... ===== */` banners, in this order:
 - Avoid adding real-time shadows or new lights; use blob shadows and emissive materials instead.
 - The portal render only runs within `Q.portalNear` of the globe.
 - If you add heavy features, branch on the `TOUCH` / `Q` profile.
+- `Q.natureTrees` (99 on both profiles) sets how many hub tree spots get the seasonal models. 99 means every spot. Touch devices have 16 spots, so they show 16 trees. Measured: touch about 113 draw calls and 153k triangles; desktop about 402 calls and 437k triangles. Desktop has no triangle budget yet.
+
+## Optional models
+- Models load asynchronously through `LI.assets`. Every user of a model must keep a built-in fallback that renders without it.
+- The headless test (`npm test`) never loads GLBs. Check model visuals in the browser.
+- Budgets: textures are 512 px at most. Keep each phone scene near 150k triangles.
+- Shrink or replace oversized models with `npm run prepare-assets`, and record new sources in `assets/CREDITS.md`.
+
+## Known gaps
+- Spring leaves read dusty raspberry with dark shaded sides, not soft blossom.
+- Desktop triangle count (about 437k) has no budget yet.
+- Phones show 16 trees.
+- No pines, flowers, grass models, houses or cats yet.
 
 ## Debug hooks
 - `window.__lumen` exposes the state `S`, the player `P`, `NPC`, `talk`, `enterGlobe`, `exitGlobe`, `pick`, `advance` and `step`. The tests use these.
