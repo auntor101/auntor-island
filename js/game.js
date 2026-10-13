@@ -599,7 +599,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 const dlg=$('dlg'),dName=$('dName'),dText=$('dText'),dOpts=$('dOpts');
 let dlgState=null;
 function say(who,text,choices){return new Promise(res=>{
-  text=text.replace(/\{name\}/g,LI.profile.name);
+  text=text.replace(/\{name\}/g,()=>LI.profile.name);
   if(dlgState&&dlgState.tm)clearTimeout(dlgState.tm);
   dlg.hidden=false;requestAnimationFrame(()=>dlg.classList.add('on'));
   dName.textContent=who.name;dName.hidden=!who.name;dName.style.setProperty('--tag',who.color||'#ff7a59');
