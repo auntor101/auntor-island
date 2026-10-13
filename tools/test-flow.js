@@ -49,6 +49,12 @@ function expect(cond, msg) { if (!cond) { console.log('FAIL:', msg); process.exi
 
 (async () => {
   step(30);
+  L.applyProfile({ gender: 'f', name: 'Sam', look: 1, skin: 2 });
+  expect(L.LI.profile.name === 'Sam' && L.LI.profile.gender === 'f', 'a girl profile can be applied');
+  expect(L.P.c.root.parent === L.HUB.scene, 'the rebuilt player is still in the world');
+  L.say({ name: 'T' }, 'Hi {name}'); L.advance();
+  expect(els.dText.textContent === 'Hi Sam', '{name} is replaced in dialogue');
+  L.pick(0);
   els.go._l.click(); step(200);
   expect(L.mode === 'play', 'start button drops the player into the world');
   tp(-6.4, 0.6); step(10); let p = L.talk(L.NPC.mira); await drive(); await p;

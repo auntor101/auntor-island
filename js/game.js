@@ -1,5 +1,6 @@
 (function(){
 'use strict';
+window.LI=window.LI||{};
 const $=id=>document.getElementById(id);
 if(!window.THREE){$('loadmsg').textContent='The 3D engine could not load. Check your connection and reload.';return;}
 
@@ -598,6 +599,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 const dlg=$('dlg'),dName=$('dName'),dText=$('dText'),dOpts=$('dOpts');
 let dlgState=null;
 function say(who,text,choices){return new Promise(res=>{
+  text=text.replace(/\{name\}/g,LI.profile.name);
   if(dlgState&&dlgState.tm)clearTimeout(dlgState.tm);
   dlg.hidden=false;requestAnimationFrame(()=>dlg.classList.add('on'));
   dName.textContent=who.name;dName.hidden=!who.name;dName.style.setProperty('--tag',who.color||'#ff7a59');
@@ -779,17 +781,26 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(window.__maxD
 
 /* ================= boot ================= */
 HUB=buildHub();INNER=buildInner();HUB.portalMat.uniforms.tPortal.value=portalRT.texture;
-P.c=makeChar({skin:'#f5c7a3',shirt:'#ff7a59',sleeve:'#ff7a59',pants:'#3d5a80',hair:'#3b2a2a',scarf:'#ffc94d',style:'player',shoes:'#f1e4cf'});
+function store(){try{return window.localStorage;}catch(e){return null;}}
+function applyProfile(p){
+  LI.profile=LIProfile.normalize(p);
+  const old=P.c,c=makeChar(LIProfile.playerOpts(LI.profile));
+  c.root.position.copy(old?old.root.position:P.pos);c.root.rotation.y=P.rot;
+  if(old&&old.root.parent){old.root.parent.add(c.root);old.root.parent.remove(old.root);}
+  P.c=c;
+}
+LI.applyProfile=applyProfile;LI.store=store;
+applyProfile(LIProfile.load(store()));
 P.pos.set(HUB.spawn.x,hubH(HUB.spawn.x,HUB.spawn.z),HUB.spawn.z);P.rot=HUB.spawn.rot;P.c.root.rotation.y=P.rot;
 setWorld(HUB);
 if(window.ResizeObserver)new ResizeObserver(resize).observe(canvas);window.addEventListener('resize',resize);resize();
 refreshQuest();
 requestAnimationFrame(frame);
 const go=$('go');go.disabled=false;$('loadmsg').textContent=TOUCH?'Best with sound on.':'Best with sound on · WASD or arrows to walk';
-go.addEventListener('click',()=>{if(started)return;started=true;audioInit();$('start').classList.add('gone');
+go.addEventListener('click',()=>{if(started)return;if(LI.beforeStart)LI.beforeStart();started=true;audioInit();$('start').classList.add('gone');
   yaw=0;pitch=.36;const pEnd=followPos(V3()),lEnd=headPos(V3());mode='cut';
   startCut({dur:2.4,p0:camera.position.clone(),p1:pEnd,l0:camLook.clone(),l1:lEnd,done:()=>{mode='play';setUI(true);
     if(TOUCH){$('joyHint').hidden=false;setTimeout(()=>$('joyHint').style.opacity=0,7000);}else{$('keys').hidden=false;$('actKey').hidden=false;setTimeout(()=>$('keys').style.opacity=0,9000);}
     note('Welcome to Lumen Isle');}});});
-window.__lumen={S,P,NPC,talk,enterGlobe,exitGlobe,pick,advance,get dlg(){return dlgState;},get mode(){return mode;},get world(){return world===HUB?'hub':'inner';},HUB,INNER,step:frame};
+window.__lumen={S,P,NPC,talk,enterGlobe,exitGlobe,pick,advance,get dlg(){return dlgState;},get mode(){return mode;},get world(){return world===HUB?'hub':'inner';},LI,say,applyProfile,HUB,INNER,step:frame};
 })();
