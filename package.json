@@ -5,11 +5,13 @@
   "description": "A tiny 3D world for an Instagram bio link",
   "scripts": {
     "dev": "npx serve .",
-    "test": "node tools/test-profile.js && node tools/test-nature.js && node tools/test-flow.js",
+    "test": "node tools/test-profile.js && node tools/test-nature.js && node tools/test-assets.js && node tools/test-flow.js",
+    "prepare-assets": "node tools/prepare-assets.js assets-src/nature-kit assets/nature",
     "shots": "node tools/screenshot.js"
   },
   "devDependencies": {
-    "three": "0.128.0",
-    "puppeteer": "^23.0.0"
+    "puppeteer": "^23.0.0",
+    "sharp": "^0.35.5",
+    "three": "0.128.0"
   }
 }
