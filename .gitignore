@@ -5,3 +5,4 @@ tools/shots/
 .superpowers/
 assets-src/
 dist/
+.claude/
