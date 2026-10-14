@@ -21,3 +21,5 @@ Files in `assets/nature/` are the original models with embedded textures removed
 | `VRM1_Constraint_Twist_Sample.vrm` (extra woman, not shipped unless chosen) | pixiv Inc. | https://github.com/pixiv/three-vrm (`packages/three-vrm/examples/models/`) | VRM 1 licence: avatarPermission everyone, modification and redistribution allowed, credit unnecessary (https://vrm.dev/licenses/1.0/) |
 
 The models in `web/public/models/` are the originals with textures shrunk to at most 1024 px by `web/scripts/shrink-vrm.mjs` (the VRM extension JSON is untouched; morph-target normal deltas are dropped and the rest stored sparse). The wizard is the man model with a procedural robe, hat and staff. Ears, hat, robe, staff and beard are generated in code (`web/src/play/attachments.js`).
+| Dog (Animal Pack, `world/animals/Dog.fbx`) | Quaternius | https://opengameart.org/content/animated-animales-low-poly | CC0 1.0 (public domain) |
+| Dragon (Animated Monsters, `world/animals/Dragon.fbx`) | Quaternius | https://quaternius.com/ (Animated Monster Pack) | CC0 1.0 (public domain) |
