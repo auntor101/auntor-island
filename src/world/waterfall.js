@@ -1,4 +1,4 @@
-import { Mesh, PlaneGeometry, ShaderMaterial, UniformsUtils, InstancedBufferGeometry, InstancedBufferAttribute, DoubleSide, Group, Vector2, Vector3 } from 'three';
+import { Mesh, PlaneGeometry, ShaderMaterial, InstancedBufferGeometry, InstancedBufferAttribute, DoubleSide, Group, Vector2, Vector3 } from 'three';
 
 export const NOISE_GLSL = `
 float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -26,7 +26,7 @@ export function createWaterfall(S, info) {
     pos.setXYZ(i, x + rx * u + dx * off, top - s * drop, z + rz * u + dz * off);
   }
   const curtain = new Mesh(cg, new ShaderMaterial({
-    transparent: true, depthWrite: false, side: DoubleSide, uniforms: UniformsUtils.merge([S]), // merge clones, so re-link the shared ones below
+    transparent: true, depthWrite: false, side: DoubleSide, uniforms: { uTime: S.uTime, uDay: S.uDay, uLight: S.uLight, uFoam: S.uFoam, uLCol: S.uLCol },
     vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * viewMatrix * vec4(position, 1.); }`,
     fragmentShader: `
       uniform float uTime, uDay; uniform vec3 uLight, uFoam, uLCol;
@@ -45,7 +45,6 @@ export function createWaterfall(S, info) {
         gl_FragColor = vec4(col, edge * (.55 + .4 * s) * (1. - .35 * smoothstep(.75, 1., v)));
       }`,
   }));
-  Object.assign(curtain.material.uniforms, { uTime: S.uTime, uDay: S.uDay, uLight: S.uLight, uFoam: S.uFoam, uLCol: S.uLCol });
   curtain.frustumCulled = false; curtain.renderOrder = 2;
 
   const N = 40, base = new PlaneGeometry(1, 1), sg = new InstancedBufferGeometry(), seed = new Float32Array(N * 4);
