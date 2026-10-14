@@ -6,7 +6,9 @@
 import { createRequire } from 'node:module';
 import { existsSync } from 'node:fs';
 const require = createRequire(import.meta.url);
-const puppeteer = require('../../node_modules/puppeteer');
+// puppeteer lives in the repo-root node_modules; git worktrees (sibling folders) fall back to the main checkout.
+const puppeteer = ['../../node_modules/puppeteer', '../../../lumen-isle/node_modules/puppeteer'].map((p) => { try { return require(p); } catch { return null; } }).find(Boolean);
+if (!puppeteer) { console.error('puppeteer not found in ../../node_modules or ../../../lumen-isle/node_modules'); process.exit(2); }
 
 const [url, out, ...rest] = process.argv.slice(2);
 if (!url || !out) { console.error('usage: node tools/shoot.mjs <url> <out.png> [--size WxH] [--touch] [--wait regex] [--delay ms] [--eval js]'); process.exit(2); }
