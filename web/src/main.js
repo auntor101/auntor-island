@@ -1,6 +1,6 @@
-import { Scene, PerspectiveCamera, HemisphereLight, DirectionalLight, Fog, Color, Vector3 } from 'three';
+import { Scene, PerspectiveCamera, HemisphereLight, DirectionalLight, Fog, Color, Vector3, Mesh, PlaneGeometry, MeshBasicMaterial, CanvasTexture } from 'three';
 import { createRenderer, startLoop } from './render/renderer.js';
-import { heightAt } from './world/island.js';
+import { heightAt, LANDMARKS } from './world/island.js';
 import { ChunkManager, createTerrainMaterial } from './world/terrain.js';
 import { createSky } from './world/sky.js';
 import { skyPalette, sunDirection, moonDirection } from './world/time.js';
@@ -9,6 +9,12 @@ import { createMoon } from './world/moon.js';
 import { createSnow } from './world/snow.js';
 import { createHud, loadPrefs, TIMES } from './ui/hud.js';
 import { createWater } from './world/water.js';
+import { stepPlayer } from './play/player.js';
+import { createControls } from './play/controls.js';
+import { createCamera } from './play/camera.js';
+import { loadCharacter } from './play/roster.js';
+import { CHARS, load as loadProfile, save as saveProfile, sanitizeName } from './profile.js';
+import { createSelect } from './ui/select.js';
 
 const gl = createRenderer(document.getElementById('gl'));
 const scene = new Scene();
@@ -58,48 +64,110 @@ const fixedT = params.has('t') ? Number(params.get('t')) : null;
 let totalHours = 15.5, mode = prefs.mode, snowK = 0, snowOn = prefs.snow;
 const phaseOf = () => params.has('phase') ? Number(params.get('phase')) : (0.5 + Math.floor((totalHours + 12) / 24) / 8) % 1; // one step per in-game day
 const hud = document.getElementById('hud');
-createHud(hud, prefs, { onMode: (m) => { mode = m; }, onSnow: (on) => { snowOn = on; } });
+const skyHud = createHud(hud, prefs, { onMode: (m) => { mode = m; }, onSnow: (on) => { snowOn = on; } });
 
-// Free-fly debug camera (Task 5 replaces it). WASD + shift, space/C up/down, mouse drag to look;
-// touch: left half drags to move, right half drags to look. ?cam=spawn|village|aerial|topdown|beach|sunset|volcano|peak (or x,y,z,yawDeg,pitchDeg) for repeatable views.
+// ?fly (or ?cam=spawn|village|aerial|topdown|beach|sunset|volcano|peak, or x,y,z,yawDeg,pitchDeg) is the debug free camera: WASD + shift, space/C up/down,
+// mouse drag to look, touch: left half drags to move, right half drags to look. No hero, no select screen. Everything else is the real game.
 const VIEWS = { // x,y,z,yawDeg,pitchDeg (yaw 0 looks north, -z)
   spawn: [8, heightAt(8, 60) + 12, 60, 0, 3], village: [8, heightAt(8, 6) + 8, 6, 0, -6], aerial: [0, 180, 70, 0, -60], topdown: [0, 200, 0, 0, -90],
   beach: [-60, 14, 80, -150, -8], sunset: [-60, 14, 80, 127, 6], volcano: [50, 55, 45, -52, -18], peak: [-10, 125, -30, 0, -14],
 };
-const q = new URLSearchParams(location.search).get('cam');
-let [x, y, z, yaw, pitch] = VIEWS[q] || (q ? q.split(',').map(Number) : VIEWS.spawn);
+const camParam = params.get('cam'), fly = params.has('fly') || camParam != null;
+let [x, y, z, yaw, pitch] = VIEWS[camParam] || (camParam ? camParam.split(',').map(Number) : VIEWS.spawn);
 yaw = yaw * Math.PI / 180; pitch = pitch * Math.PI / 180;
-const keys = new Set(), touches = new Map();
-addEventListener('keydown', (e) => keys.add(e.code));
-addEventListener('keyup', (e) => keys.delete(e.code));
-const cv = document.getElementById('gl');
-cv.addEventListener('pointerdown', (e) => { cv.setPointerCapture(e.pointerId); touches.set(e.pointerId, { x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, move: e.pointerType === 'touch' && e.clientX < innerWidth / 2 }); });
-cv.addEventListener('pointermove', (e) => {
-  const t = touches.get(e.pointerId);
-  if (!t) return;
-  if (!t.move) { yaw -= (e.clientX - t.x) * 0.005; pitch = Math.max(-1.5, Math.min(1.5, pitch - (e.clientY - t.y) * 0.005)); }
-  t.x = e.clientX; t.y = e.clientY;
-});
-const end = (e) => touches.delete(e.pointerId);
-cv.addEventListener('pointerup', end);
-cv.addEventListener('pointercancel', end);
+const keys = new Set(), touches = new Map(), cv = document.getElementById('gl');
+if (fly) {
+  addEventListener('keydown', (e) => keys.add(e.code));
+  addEventListener('keyup', (e) => keys.delete(e.code));
+  cv.addEventListener('pointerdown', (e) => { cv.setPointerCapture(e.pointerId); touches.set(e.pointerId, { x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, move: e.pointerType === 'touch' && e.clientX < innerWidth / 2 }); });
+  cv.addEventListener('pointermove', (e) => {
+    const t = touches.get(e.pointerId);
+    if (!t) return;
+    if (!t.move) { yaw -= (e.clientX - t.x) * 0.005; pitch = Math.max(-1.5, Math.min(1.5, pitch - (e.clientY - t.y) * 0.005)); }
+    t.x = e.clientX; t.y = e.clientY;
+  });
+  const end = (e) => touches.delete(e.pointerId);
+  cv.addEventListener('pointerup', end);
+  cv.addEventListener('pointercancel', end);
+}
 
+// Stats live in the same column as the Sky button, under its panel, so the two never overlap.
 const panel = document.createElement('pre');
 const btn = document.createElement('button');
 btn.textContent = 'stats';
-btn.onclick = () => { panel.hidden = !panel.hidden; };
-hud.append(btn, panel);
+btn.setAttribute('aria-expanded', 'false');
+btn.onclick = () => { panel.hidden = !panel.hidden; btn.setAttribute('aria-expanded', String(!panel.hidden)); };
+skyHud.root.append(btn, panel);
+const note = document.createElement('div');
+note.className = 'note';
+hud.append(note);
+
+// The hero: a soft blob shadow (one transparent disc), the character from the roster, walking physics, follow camera.
+const blob = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'), r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  r.addColorStop(0, 'rgba(0,0,0,.45)'); r.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = r; g.fillRect(0, 0, 64, 64);
+  const m = new Mesh(new PlaneGeometry(1.3, 1.3).rotateX(-Math.PI / 2), new MeshBasicMaterial({ map: new CanvasTexture(c), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+  m.visible = false; scene.add(m); return m;
+})();
+let hero = null, controls = null, follow = null, state = null, heroId = '';
+const inp = { x: 0, y: 0, run: false, cameraYaw: 0 };
+const game = window.__game = { bot: null, get state() { return state; }, get cam() { return follow; } }; // bot = { x, y, run } overrides the controls (tests, screenshots)
+
+async function startGame(char, name) {
+  const t0 = performance.now();
+  hero = await loadCharacter(char);
+  heroId = char; scene.add(hero.root);
+  const sp = LANDMARKS.spawn;
+  state = { x: sp.x, z: sp.z, y: heightAt(sp.x, sp.z), heading: 0, speed: 0 };
+  controls = createControls(cv, hud); follow = createCamera(camera);
+  blob.visible = true;
+  note.textContent = 'Welcome to Auntor Island, ' + name;
+  note.classList.add('on');
+  setTimeout(() => note.classList.remove('on'), 6000);
+  game.loadMs = Math.round(performance.now() - t0);
+}
+
+const profile = loadProfile(localStorage);
+const skipChar = CHARS.includes(params.get('char')) ? params.get('char') : null;
+let select = null;
+if (!skipChar && !fly) hud.style.visibility = 'hidden'; // the start card covers the screen, the HUD returns with the game
+if (skipChar) startGame(skipChar, sanitizeName(params.get('name')));
+else if (!fly) {
+  select = createSelect(document.getElementById('ui'), profile, async (p) => {
+    saveProfile(localStorage, p);
+    select.busy(true, 'Loading...');
+    try { await startGame(p.char, p.name); select.hide(); select = null; hud.style.visibility = ''; } catch (e) { console.error(e); select.busy(false, 'Try again'); }
+  });
+}
 
 let acc = 0;
 startLoop((dt, now, rawMs) => {
-  let f = (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0), r = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0);
-  for (const t of touches.values()) if (t.move) { f += Math.max(-1, Math.min(1, (t.y0 - t.y) / 50)); r += Math.max(-1, Math.min(1, (t.x - t.x0) / 50)); }
-  const v = (keys.has('ShiftLeft') ? 60 : 20) * dt, cy = Math.cos(pitch);
-  x += (-Math.sin(yaw) * cy * f + Math.cos(yaw) * r) * v;
-  y += (Math.sin(pitch) * f + (keys.has('Space') ? 1 : 0) - (keys.has('KeyC') ? 1 : 0)) * v;
-  z += (-Math.cos(yaw) * cy * f - Math.sin(yaw) * r) * v;
-  camera.position.set(x, Math.max(y, heightAt(x, z) + 2), z);
-  camera.rotation.set(pitch, yaw, 0, 'YXZ');
+  if (hero) {
+    const c = game.bot || controls.read();
+    inp.x = c.x; inp.y = c.y; inp.run = c.run; inp.cameraYaw = follow.yaw;
+    state = stepPlayer(state, inp, dt, heightAt);
+    follow.update(state, c.lookDX || 0, c.lookDY || 0, dt);
+    hero.update(dt, state.speed);
+    hero.root.position.set(state.x, state.y, state.z);
+    hero.root.rotation.y = state.heading + Math.PI; // the models face +z, the player heading 0 faces -z
+    blob.position.set(state.x, state.y + 0.04, state.z);
+  } else if (fly) {
+    let f = (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0), r = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0);
+    for (const t of touches.values()) if (t.move) { f += Math.max(-1, Math.min(1, (t.y0 - t.y) / 50)); r += Math.max(-1, Math.min(1, (t.x - t.x0) / 50)); }
+    const v = (keys.has('ShiftLeft') ? 60 : 20) * dt, cy = Math.cos(pitch);
+    x += (-Math.sin(yaw) * cy * f + Math.cos(yaw) * r) * v;
+    y += (Math.sin(pitch) * f + (keys.has('Space') ? 1 : 0) - (keys.has('KeyC') ? 1 : 0)) * v;
+    z += (-Math.cos(yaw) * cy * f - Math.sin(yaw) * r) * v;
+    camera.position.set(x, Math.max(y, heightAt(x, z) + 2), z);
+    camera.rotation.set(pitch, yaw, 0, 'YXZ');
+  } else { // behind the start card: a slow orbit round the spawn
+    const a = now * 0.00008, sp = LANDMARKS.spawn, ox = sp.x + Math.sin(a) * 34, oz = sp.z + Math.cos(a) * 34;
+    camera.position.set(ox, Math.max(heightAt(ox, oz), 0) + 12, oz);
+    camera.lookAt(sp.x, heightAt(sp.x, sp.z) + 4, sp.z);
+  }
+  const cp = camera.position;
 
   if (fixedT != null) totalHours = fixedT;
   else if (mode === 'auto') totalHours += dt * 24 / 360;
@@ -107,22 +175,23 @@ startLoop((dt, now, rawMs) => {
   snowK += ((snowOn ? 1 : 0) - snowK) * Math.min(1, dt * 1.2);
   const { day, base } = applyPalette(totalHours, snowK);
   const px = gl.stats().pixelRatio;
-  const alt = Math.max(0, camera.position.y - heightAt(x, z)); // lift the fog when flying high so the island stays visible
+  const alt = Math.max(0, cp.y - heightAt(cp.x, cp.z)); // lift the fog when flying high so the island stays visible
   scene.fog.near = fogNear + 2 * alt; scene.fog.far = fogFar + 3 * alt;
-  stars.points.position.copy(camera.position); moon.group.position.copy(camera.position);
+  stars.points.position.copy(cp); moon.group.position.copy(cp);
   stars.update(now / 1000, base.stars * (1 - 0.6 * snowK), px);
   moon.update(totalHours, phaseOf(), base.moon * (1 - 0.5 * snowK));
   snow.update(now / 1000, snowK, px, tmp.set('#8fa4d8').lerp(WHITE, day));
-  chunks.update(camera.position);
-  sky.mesh.position.copy(camera.position);
-  water.mesh.position.set(Math.round(x / 8) * 8, 0, Math.round(z / 8) * 8);
+  chunks.update(cp);
+  sky.mesh.position.copy(cp);
+  water.mesh.position.set(Math.round(cp.x / 8) * 8, 0, Math.round(cp.z / 8) * 8);
   water.update(now / 1000, pal);
 
   gl.render(scene, camera, rawMs);
+  if (select) select.progress(chunks.built, chunks.wanted);
   acc += dt;
   if (acc > 0.25 && !panel.hidden) {
     acc = 0;
     const s = gl.stats();
-    panel.textContent = `fps ${s.fps}\ncalls (all passes) ${s.calls}\ntris (all passes) ${s.triangles}\npr ${s.pixelRatio.toFixed(2)}\nchunks ${chunks.built}/${chunks.wanted}`;
+    panel.textContent = `fps ${s.fps}\ncalls (all passes) ${s.calls}\ntris (all passes) ${s.triangles}\npr ${s.pixelRatio.toFixed(2)}\nchunks ${chunks.built}/${chunks.wanted}\nchar ${heroId || '-'}`;
   }
 });

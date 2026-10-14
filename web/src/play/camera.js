@@ -1,7 +1,7 @@
 import { Vector3 } from 'three';
 import { heightAt } from '../world/island.js';
 
-const DIST = 4.5, HEAD = 1.6, SHOULDER = 0.6, LOOK = 0.005, GROUND_GAP = 0.6, FOV_KICK = 6;
+const DIST = 5.2, HEAD = 1.6, SHOULDER = 0.6, LOOK = 0.005, GROUND_GAP = 0.6, FOV_KICK = 6;
 const damp = (cur, goal, k, dt) => cur + (goal - cur) * (1 - Math.exp(-k * dt)); // frame-rate independent smoothing
 
 // Third-person follow camera. yaw 0 looks toward -z; drag right turns right, drag down looks down (camera rises).

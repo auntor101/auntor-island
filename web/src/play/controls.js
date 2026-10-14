@@ -40,7 +40,7 @@ export function createControls(canvas, root) {
       let dx = e.clientX - stick.cx, dy = e.clientY - stick.cy; const d = Math.hypot(dx, dy);
       if (d > R) { dx *= R / d; dy *= R / d; }
       ox = dx / R; oy = -dy / R;
-      const m = Math.hypot(ox, oy); edge = m > (edge ? 0.8 : 0.95); // hysteresis: pushed to the rim = run
+      edge = d > R * (edge ? 0.95 : 1.1); // run only when the thumb is pushed past the ring (hysteresis); a full normal push stays a walk
       knob.style.transform = `translate(${dx}px,${dy}px)`; base.classList.toggle('run', edge);
     } else if (look && e.pointerId === look.id) {
       lookDX += e.clientX - look.x; lookDY += e.clientY - look.y; look.x = e.clientX; look.y = e.clientY;

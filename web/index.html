@@ -27,11 +27,37 @@ html, body { margin:0; height:100%; overflow:hidden; background:var(--cream); co
 #hud .sky-panel .chip { margin:0; flex:1 1 auto; min-width:68px; min-height:44px; padding:0 12px; }
 #hud .sky-panel .chip.on { background:var(--coral); }
 #hud .sky-panel .snow { width:100%; }
+#hud .note { position:absolute; left:50%; top:calc(env(safe-area-inset-top) + 14px); transform:translateX(-50%); max-width:calc(100vw - 150px); padding:10px 16px; border:2px solid var(--ink); border-radius:16px; background:var(--cream); font:700 italic 16px var(--display); text-align:center; opacity:0; transition:opacity .5s; pointer-events:none; }
+#hud .note.on { opacity:1; }
+#ui .sel { position:fixed; inset:0; z-index:5; display:flex; padding:max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); overflow-y:auto; background:rgba(42,31,61,.18); }
+#ui .sel[hidden] { display:none; }
+#ui .sel-card { margin:auto; width:min(100%, 440px); padding:16px; border:3px solid var(--ink); border-radius:24px; background:var(--cream); text-align:center; box-shadow:6px 6px 0 var(--ink); }
+#ui .sel-title { margin:0; font:700 30px/1.1 var(--display); }
+#ui .sel-sub { margin:2px 0 12px; font:700 italic 16px var(--display); }
+#ui .sel-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+#ui .sel-char { display:flex; flex-direction:column; align-items:center; gap:4px; min-height:44px; padding:6px 6px 8px; border:3px solid var(--ink); border-radius:18px; background:#fff; color:var(--ink); font:800 16px var(--body); touch-action:manipulation; }
+#ui .sel-char img { width:100%; max-width:128px; height:auto; aspect-ratio:1; border-radius:12px; object-fit:cover; }
+#ui .sel-char.on { background:var(--coral); box-shadow:0 0 0 3px var(--cream), 0 0 0 6px var(--ink); }
+#ui .sel-row { display:flex; gap:10px; margin-top:14px; }
+#ui .sel-name { flex:1; min-width:0; min-height:52px; padding:0 14px; border:3px solid var(--ink); border-radius:26px; background:#fff; color:var(--ink); font:700 16px var(--body); }
+#ui .sel-go { min-width:104px; min-height:52px; border:3px solid var(--ink); border-radius:26px; background:var(--coral); color:var(--ink); font:800 18px var(--body); touch-action:manipulation; }
+#ui .sel-go:disabled { opacity:.7; }
+#ui .sel-bar { height:8px; margin-top:14px; border:2px solid var(--ink); border-radius:6px; overflow:hidden; background:#fff; }
+#ui .sel-bar div { height:100%; width:0; background:var(--coral); transition:width .3s; }
+#ui .sel-msg { margin-top:4px; font:700 13px var(--body); }
+@media (orientation:landscape) and (max-height:520px) {
+  #ui .sel-card { width:min(100%, 780px); padding:10px 14px; }
+  #ui .sel-title { font-size:24px; display:inline; } #ui .sel-sub { display:inline; margin-left:10px; }
+  #ui .sel-grid { grid-template-columns:repeat(4, 1fr); margin-top:8px; }
+  #ui .sel-char img { max-width:86px; }
+  #ui .sel-row { margin-top:10px; } #ui .sel-bar { margin-top:8px; } #ui .sel-msg { display:none; }
+}
 </style>
 </head>
 <body>
 <canvas id="gl"></canvas>
 <div id="hud"></div>
+<div id="ui"></div>
 <script type="module" src="/src/main.js"></script>
 </body>
 </html>
