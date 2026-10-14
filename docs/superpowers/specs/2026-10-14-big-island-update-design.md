@@ -50,6 +50,16 @@ Design rules: three difficulty tiers mixed in one session, never a hard fail, hi
 - **Keep the finale:** 3 stars still lead to the snow-globe secret and the Instagram word.
 - Adaptive help: after 90 seconds stuck, the companion nudges; after 3 minutes, an arrow shows.
 
+## Slapstick deaths (comedy, no blood)
+Dying is a joke in this game, in the style of cartoon pratfalls. Rules: no blood, no gore, nothing graphic, and the tone is silly, never grim.
+- **Ways to die (added as each zone arrives):** walk or jump off a cliff or the mountain edge, fall into deep water, stand in a campfire or fire pit and burn (cartoon flames, a smoking charcoal figure), get run over by a car on the road, crash a horse, donkey or motorbike, get launched by a trampoline into the sea, and more silly ones later.
+- **The death moment:** a quick tumble or ragdoll flop, manga text ("BONK!", "SPLAT!" shown as a comic burst, "AAAA!"), stars circling a halo, the ghost floats up, a tiny tombstone gag, then fade out.
+- **The screen:** exactly the text **"You died successfully."** and under it **"Wanna try again?"** with a big Try Again button. Respawn at the last checkpoint with all quest progress and stars kept.
+- **Collection:** a "Ways I Died" list (cliff, fire, car, horse, water and so on) with a counter, shown on the share card. Finding every way is a mini-goal.
+- **Pause menu:** a **"Dramatic exit"** button for a deliberate silly death (pick a method) and a **"Stuck? Respawn"** button. The UI does not use the word suicide.
+- **Safety and fun:** deaths never cost progress or time beyond a few seconds, they are always optional, and they happen to the same stylised character as everything else. Cars and fire are props that react to the player, not scripted traps that punish exploring.
+- **Phone cost:** reuse the existing particle and blob-shadow code, no physics engine; tumble is a short scripted arc.
+
 ## The cast
 Fictional characters only. Nma, the Colonel (a swaggering made-up leader of a made-up country), Ukk-ass, Bang-odi, Tom, Nanda, plus an invented film-star set. Each gets a home zone, a look, a voice pitch, a banter style (MCU, made-up politics, science, astrology, teasing and sarcasm toward the player and each other) and one quest. Dialogue goes through the existing `say()` with `{name}` expansion and a style pass for natural, funny writing. No real people, no real countries' leaders, no festival or community jokes.
 
@@ -69,7 +79,7 @@ Roads and signposts connect the zones so the map reads clearly.
 | 2 | **Taller people** | `makeChar` v2, male and female, new hair and outfits, applied to the player and every NPC |
 | 3 | **Companion and cats that meow** | Follow system, companion picker, notice/approach/meow/rub, petting, cat counter |
 | 4 | **Quest board and cast** | About 12 quests, hints, the six named cast members with banter |
-| 5 | **Horse** | First mount, crash and respawn, speeds up crossing |
+| 5 | **Horse and the death system** | First mount, crash, the "You died successfully" screen and respawn, cliff, water and fire deaths; cars later with roads |
 | 6 | **Coast, beach, mountain, sunset** | Zones with props and music |
 | 7 | **Venues and festivals** | Shops with menus, Food Passport, festival games |
 | 8 | **Real models and polish** | VRoid player/companion if provided, analytics, launch headers |
