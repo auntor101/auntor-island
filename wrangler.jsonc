@@ -2,6 +2,6 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "auntor-island",
   "compatibility_date": "2026-10-12",
-  "build": { "command": "node tools/build-site.js" },
+  "build": { "command": "npm run build" },
   "assets": { "directory": "dist" }
 }

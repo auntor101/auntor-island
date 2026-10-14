@@ -3,7 +3,7 @@
 import { createRequire } from 'node:module';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { readGlb } from './vrm-meta.mjs';
-const sharp = createRequire(import.meta.url)('../../node_modules/sharp');
+const sharp = createRequire(import.meta.url)('../node_modules/sharp');
 
 for (const id of process.argv.slice(2).length ? process.argv.slice(2) : ['man', 'woman', 'elf']) {
   const { json, bin } = readGlb(readFileSync(`public/models/${id}.vrm`));

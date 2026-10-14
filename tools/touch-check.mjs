@@ -1,6 +1,6 @@
 // Real touch events through the select screen and the stick: node tools/touch-check.mjs [url]. Needs the dev server running.
 import { createRequire } from 'node:module';
-const puppeteer = createRequire(import.meta.url)('../../node_modules/puppeteer');
+const puppeteer = createRequire(import.meta.url)('../node_modules/puppeteer');
 const url = process.argv[2] || 'http://localhost:5391/';
 const browser = await puppeteer.launch({ executablePath: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', headless: 'new', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox'] });
 try {

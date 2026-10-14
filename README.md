@@ -1,42 +1,30 @@
-# Auntor Island
+# Auntor Island (new app)
 
-A tiny 3D world for an Instagram bio link. Wander the island, help the villagers, answer riddles, and zoom into a snow globe to find a hidden winter world and a secret word.
+Auntor Island: a modern anime-style island you walk across as a man, woman, elf or wizard, under a day and night sky with stars, a moon, sunrise, sunset and switchable snow. The old small game is preserved untouched on the `archive/old-game` branch.
 
-## Quick start
-```bash
-npx serve .            # then open the printed URL
-# or
-python3 -m http.server 8080
+## Run it
 ```
-
-## Working on it with Claude Code
-```bash
-cd lumen-isle
-claude
-```
-Claude Code reads `CLAUDE.md` automatically. It explains how the code is laid out, how the portal effect works, the visual rules and the performance budget. Some good first requests:
-- "Replace @101auntojje with @myname and change the secret word to ..."
-- "Add a second portal: a painting in Mira's house that leads to a watercolour meadow"
-- "Swap the player for a GLB model with walk and idle animations"
-
-## Tests
-```bash
 npm install
-npm test          # plays the whole quest chain headlessly and checks for errors
-npm run shots     # saves desktop and phone screenshots to tools/shots/
+npm run dev          # prints a Local and a Network address
 ```
-
-## Deploy
-`npm run build` writes `dist/`, which holds only what visitors need (page, scripts, vendor, assets) and adds a Content-Security-Policy meta tag. Never publish the project root: it contains sources, docs and `node_modules`.
-
-- **GitHub Pages (current):** the `gh-pages` branch holds a copy of `dist/`. Publish with `npm run build`, then push `dist/` to `gh-pages` (see CLAUDE.md).
-- **Netlify / Cloudflare Pages:** build command `node tools/build-site.js`, publish directory `dist`.
-
-Put the live URL in your Instagram bio.
+Open the **Network** address on your phone (same Wi-Fi). `npm test` runs the unit tests, `npm run build` makes `dist/`, the build uses relative paths, so it can be hosted at a site root or in any sub-folder.
 
 ## Controls
-- Phone: drag the left half of the screen to walk and the right half to look. Tap a villager or press the action button to talk.
-- Desktop: WASD or the arrow keys to walk, drag to look, scroll to zoom, E to talk.
+- Phone: drag on the left half to walk (push the stick past the ring to run, or hold **Run**), drag on the right half to look.
+- Keyboard and mouse: WASD or arrows, Shift to run, drag to look.
+- **Sky** button (top right): Time (Auto, Dawn, Day, Sunset, Night) and Snow on or off. **stats** shows frame rate, draw calls and triangles.
 
-## Credits
-three.js r128 (MIT), included in `vendor/three/`. Fonts: Fraunces and Nunito from Google Fonts. Trees: Quaternius Stylized Nature MegaKit, CC0 (see `assets/CREDITS.md`). three.js r128 is MIT licensed (`vendor/three/LICENSE`).
+## URL tools (for testing)
+`?char=man|woman|elf|wizard&name=Sam` skips the select screen, `?t=<hours>` fixes the time (0 to 24), `?snow=1`, `?phase=<0..1>` moon phase, `?cam=spawn|aerial|beach|volcano|peak|village` debug views, `?fly` free camera.
+
+## Performance goals (to be confirmed on a real phone)
+60 fps on a flagship phone, at least 45 on mid-range, about 300 draw calls and 600k triangles in the busiest view, a frame-time governor that lowers the pixel ratio before frames drop. Measured so far (software rendering, so only the counts mean anything): about 70 to 85 draw calls and 62k to 78k triangles with a character on screen.
+
+## Real-phone checklist (please try this and send back the answers)
+1. Open the link on your phone and tap **stats**.
+2. Pick a character, enter a name, press Start, and walk for a minute (also run).
+3. Open **Sky**: try Sunset and Night, then Snow.
+4. Send back: your phone model and browser, whether it ran smoothly (and where it stuttered), the **fps, calls and tris** shown, whether the buttons were easy to reach with one thumb, and a screenshot.
+
+## Layout
+`src/render` renderer, post-processing, frame-time governor. `src/world` island shape (`island.js`), terrain chunks, sky, water, time of day, stars, moon, snow. `src/play` player, controls, camera, roster and attachments. `src/ui` HUD and the select screen. `public/models` the four characters; `public/world` cat, dog and trees (CC0 VRoid sample models, shrunk). `tools/shoot.mjs` headless screenshot tool, `tools/touch-check.mjs` touch test (needs a server).

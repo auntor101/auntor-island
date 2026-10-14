@@ -6,7 +6,7 @@ import { createRequire } from 'node:module';
 import { readGlb } from './vrm-meta.mjs';
 
 const require = createRequire(import.meta.url);
-const sharp = ['../../node_modules/sharp', '../../../lumen-isle/node_modules/sharp'].map((p) => { try { return require(p); } catch { return null; } }).find(Boolean);
+const sharp = ['../node_modules/sharp', '../../lumen-isle/node_modules/sharp'].map((p) => { try { return require(p); } catch { return null; } }).find(Boolean);
 if (!sharp) throw new Error('sharp not found in ../../node_modules or ../../../lumen-isle/node_modules');
 
 const BIG = /^(?!.*(eye|mouth|brow|lash|line)).*(face|hair|body|skin|tops|cloth|dress|skirt|coat)/i;
