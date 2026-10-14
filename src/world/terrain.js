@@ -1,104 +1,23 @@
 import { BufferGeometry, BufferAttribute, Mesh, Color, DataTexture, RGBAFormat, LinearFilter, LinearMipmapLinearFilter, RepeatWrapping, ShaderMaterial, UniformsUtils, UniformsLib, Vector3 } from 'three';
-import { heightAt, zoneAt, woods, LANDMARKS, SEA_STACKS } from './island.js';
-import { CHUNK, VIEW_RADIUS, chunkKey, chunksAround, lodFor } from './chunks.js';
+import { CHUNK, VIEW_RADIUS, chunkKey, chunksAround, lodFor, buildChunkData } from './chunks.js';
 
-const STEP = [1, 2, 4]; // metres between vertices per lod; each grid is a subset of the finer one
-const GROVE = { x: -72, z: -30 };
-const smooth = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
-
-// Per-vertex zone WEIGHTS (the fragment shader does the actual painting, so borders stay crisp).
-// wa = unused, rock, sand, snow; wb = ember, path, forest, black sand; au = curvature (+ = gully), grove.
-// Grass is implicit: 1 - the largest other weight.
-function weigh(x, z, h, curv, wa, wb, au, k) {
-  const zone = zoneAt(x, z), r = Math.hypot(x, z), lo = Math.sin(x * 0.09 + 2 * Math.sin(z * 0.05 + 1)) * Math.sin(z * 0.1 + 2 * Math.sin(x * 0.06));
-  const vil = 1 - smooth(30, 40, r);
-  let rock = 0, sand = 0, snow = 0, ember = 0, black = 0, grove = 0;
-  let path = smooth(-0.2, 0.5, lo) * 0.8 * vil, forest = smooth(-0.2, 0.9, woods(x, z)) * (1 - vil);
-  const low = (t) => { path *= t; forest *= t; }; // fade lowland detail where sand takes over
-  switch (zone) {
-    case 'sea': sand = 1; low(0); break;
-    case 'beach': {
-      const t = smooth(0.3, 1, h), bl = 1 - smooth(25, 55, Math.hypot(x - LANDMARKS.beach.x, z - LANDMARKS.beach.z));
-      sand = (1 - t) * (1 - bl); black = (1 - t) * bl; low(t); break;
-    }
-    case 'cove': { const t = smooth(1.5, 3, h); sand = 1 - t; low(t); break; }
-    case 'grove': grove = 1 - smooth(14, 24, Math.hypot(x - GROVE.x, z - GROVE.z)); forest = forest * (1 - grove) + 0.35 * grove; break;
-    case 'roost': rock = smooth(8, 18, h); break;
-    case 'tower': rock = 0.55 * (1 - smooth(8, 16, Math.hypot(x - LANDMARKS.tower.x, z - LANDMARKS.tower.z))); break;
-    case 'glacier': snow = 1; break;
-  }
-  if (zone !== 'glacier') { rock = Math.max(rock, smooth(25, 55, h)); snow = Math.max(snow, smooth(50, 80, h) * 0.9); }
-  rock *= 1 - snow;
-  { const hi = Math.max(smooth(30, 50, h), snow, rock); forest *= 1 - hi; path *= 1 - hi; }
-  if (zone !== 'sea') ember = 1 - smooth(32, 46, Math.hypot(x - 98, z - 8));
-  const nv = 1 - ember; rock *= nv; sand *= nv; black *= nv; path *= nv; forest *= nv;
-  for (const s of SEA_STACKS) { // sea stacks read as rock whatever the zone says
-    const q = (x - s.x) ** 2 + (z - s.z) ** 2;
-    if (q < 100) { rock = Math.max(rock, 2 * smooth(100, 36, q)); break; }
-  }
-  wa[k] = 0; wa[k + 1] = rock; wa[k + 2] = sand; wa[k + 3] = snow;
-  wb[k] = ember; wb[k + 1] = path; wb[k + 2] = forest; wb[k + 3] = black;
-  au[k / 2] = curv; au[k / 2 + 1] = grove;
-}
-
-// Chunk mesh. Seams between lods are hidden with skirts: a downward strip around the border
-// (depth 1 + 2 * step) that copies the edge vertex data. Returns null when the whole
-// chunk is deep under the sea (the opaque water hides it), which saves draw calls.
-export function buildChunkMesh(cx, cz, lod, material) {
-  const step = STEP[lod], n = CHUNK / step, V = n + 1, ox = cx * CHUNK, oz = cz * CHUNK;
-  // heights on a grid padded by one step (lod 0 takes its normals from it)
-  const P = n + 3, hs = new Float32Array(P * P);
-  let hmax = -Infinity;
-  for (let j = 0; j < P; j++) for (let i = 0; i < P; i++) hmax = Math.max(hmax, hs[j * P + i] = heightAt(ox + (i - 1) * step, oz + (j - 1) * step));
-  if (hmax < -4) return null;
-  const skirt = 1 + 2 * step, nv = V * V + 4 * V;
-  const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), wa = new Float32Array(nv * 4), wb = new Float32Array(nv * 4), au = new Float32Array(nv * 2);
-  for (let j = 0; j < V; j++) for (let i = 0; i < V; i++) {
-    const k = j * V + i, hp = (j + 1) * P + i + 1, h = hs[hp];
-    // normals and curvature use fixed baselines (1 m, 3 m), so a vertex shared by two lods gets identical data
-    const wx = ox + i * step, wz = oz + j * step;
-    const nx = step === 1 ? hs[hp - 1] - hs[hp + 1] : heightAt(wx - 1, wz) - heightAt(wx + 1, wz);
-    const nz = step === 1 ? hs[hp - P] - hs[hp + P] : heightAt(wx, wz - 1) - heightAt(wx, wz + 1), ny = 2, l = Math.hypot(nx, ny, nz);
-    pos.set([i * step, h, j * step], k * 3);
-    nor.set([nx / l, ny / l, nz / l], k * 3);
-    const lap = (heightAt(wx - 3, wz) + heightAt(wx + 3, wz) + heightAt(wx, wz - 3) + heightAt(wx, wz + 3)) / 4 - h;
-    weigh(wx, wz, h, Math.max(-1, Math.min(1, lap / 1.5)), wa, wb, au, k * 4);
-  }
-  const idx = [];
-  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
-    const a = j * V + i, b = a + V, c = a + 1, d = b + 1;
-    idx.push(a, b, c, c, b, d);
-  }
-  // skirt edges ordered so each strip faces outward: north +x, east +z, south -x, west -z
-  const edges = [
-    Array.from({ length: V }, (_, i) => i),
-    Array.from({ length: V }, (_, j) => j * V + n),
-    Array.from({ length: V }, (_, i) => n * V + n - i),
-    Array.from({ length: V }, (_, j) => (n - j) * V),
-  ];
-  let s = V * V;
-  for (const e of edges) {
-    for (let m = 0; m < V; m++, s++) {
-      const t = e[m];
-      pos.set([pos[t * 3], pos[t * 3 + 1] - skirt, pos[t * 3 + 2]], s * 3);
-      nor.set(nor.subarray(t * 3, t * 3 + 3), s * 3);
-      wa.set(wa.subarray(t * 4, t * 4 + 4), s * 4);
-      wb.set(wb.subarray(t * 4, t * 4 + 4), s * 4);
-      au.set(au.subarray(t * 2, t * 2 + 2), s * 2);
-      if (m < V - 1) idx.push(e[m], e[m + 1], s, e[m + 1], s + 1, s);
-    }
-  }
+const toMesh = (d, cx, cz, material) => {
   const g = new BufferGeometry();
-  g.setAttribute('position', new BufferAttribute(pos, 3));
-  g.setAttribute('normal', new BufferAttribute(nor, 3));
-  g.setAttribute('wa', new BufferAttribute(wa, 4));
-  g.setAttribute('wb', new BufferAttribute(wb, 4));
-  g.setAttribute('aux', new BufferAttribute(au, 2));
-  g.setIndex(idx);
+  g.setAttribute('position', new BufferAttribute(d.pos, 3));
+  g.setAttribute('normal', new BufferAttribute(d.nor, 3));
+  g.setAttribute('wa', new BufferAttribute(d.wa, 4));
+  g.setAttribute('wb', new BufferAttribute(d.wb, 4));
+  g.setAttribute('aux', new BufferAttribute(d.au, 2));
+  g.setIndex(new BufferAttribute(d.idx, 1));
   g.computeBoundingSphere();
   const mesh = new Mesh(g, material);
-  mesh.position.set(ox, 0, oz);
+  mesh.position.set(cx * CHUNK, 0, cz * CHUNK);
   return mesh;
+};
+// Sync build (tests, and the fallback when workers are unavailable).
+export function buildChunkMesh(cx, cz, lod, material) {
+  const d = buildChunkData(cx, cz, lod);
+  return d && toMesh(d, cx, cz, material);
 }
 
 // One 128 px RGBA random tile (4 independent channels) is the only texture: every pattern below is
@@ -239,30 +158,69 @@ export function createTerrainMaterial() {
   return m;
 }
 
-// Streams chunks around the camera: at most 2 builds per frame, nearest first.
+// Streams chunks around the camera. Geometry is built in 2 workers (falls back to the main thread if they cannot start);
+// the main thread only wraps the arrays and uploads, at most 2 meshes per frame, nearest first.
+// ready = every wanted chunk is built at its lod; progress = built / wanted; mainMs / meshes = main-thread cost so far.
 export class ChunkManager {
-  constructor(scene, material, radius = VIEW_RADIUS) {
-    Object.assign(this, { scene, material, radius, map: new Map(), built: 0, wanted: 0 });
+  constructor(scene, material, radius = VIEW_RADIUS, workers = 2) {
+    Object.assign(this, { scene, material, radius, map: new Map(), built: 0, wanted: 0, ready: false, progress: 0, mainMs: 0, meshes: 0, inbox: [], pool: [], seq: 0 });
+    try {
+      if (workers > 0 && typeof Worker !== 'undefined') for (let i = 0; i < workers; i++) {
+        const w = new Worker(new URL('./terrain-worker.js', import.meta.url), { type: 'module' });
+        w.busy = 0;
+        w.onmessage = (e) => { w.busy--; this.inbox.push(e.data); };
+        w.onerror = () => this.#fallback();
+        this.pool.push(w);
+      }
+    } catch { this.#fallback(); }
+  }
+  #fallback() { // workers unusable: drop them; pending requests are re-issued on the main thread
+    for (const w of this.pool) w.terminate();
+    this.pool = [];
+    for (const e of this.map.values()) e.pend = null;
   }
   update(cam) {
+    const t0 = performance.now();
     const want = chunksAround(cam.x, cam.z, this.radius), keep = new Set(chunksAround(cam.x, cam.z, this.radius + 24).map((c) => chunkKey(c.cx, c.cz)));
     for (const [k, e] of this.map) if (!keep.has(k)) { this.#drop(e); this.map.delete(k); }
+    // finished worker jobs: at most 2 uploads per frame
+    for (let n = 0; n < 2 && this.inbox.length; n++) {
+      const { id, d } = this.inbox.shift(), e = this.map.get(id.k);
+      if (!e || e.pend !== id.n) continue; // dropped or superseded while in flight
+      this.#put(e, id.cx, id.cz, id.lod, d && toMesh(d, id.cx, id.cz, this.material));
+    }
     let budget = 2, built = 0;
     for (const { cx, cz } of want) {
-      const k = chunkKey(cx, cz), e = this.map.get(k), d = Math.hypot((cx + 0.5) * CHUNK - cam.x, (cz + 0.5) * CHUNK - cam.z);
+      const k = chunkKey(cx, cz);
+      let e = this.map.get(k);
+      const d = Math.hypot((cx + 0.5) * CHUNK - cam.x, (cz + 0.5) * CHUNK - cam.z), lod = lodFor(d);
       // keep the current lod while within 8 m of a band edge (no flip-flopping)
-      if (e && lodFor(d - 8) <= e.lod && e.lod <= lodFor(d + 8)) { built++; continue; }
-      if (budget === 0) continue;
-      budget--;
-      const lod = lodFor(d), mesh = buildChunkMesh(cx, cz, lod, this.material);
-      if (e) this.#drop(e);
-      if (mesh) this.scene.add(mesh);
-      this.map.set(k, { mesh, lod });
-      built++;
+      if (e && e.lod !== undefined && lodFor(d - 8) <= e.lod && e.lod <= lodFor(d + 8)) { built++; continue; }
+      if (!e) this.map.set(k, e = { mesh: null, lod: undefined, pend: null });
+      if (this.pool.length) {
+        if (e.pend && e.lodWant === lod) continue;
+        const w = this.pool.reduce((p, q) => (q.busy < p.busy ? q : p));
+        if (w.busy >= 3) continue;
+        e.pend = ++this.seq; e.lodWant = lod; w.busy++;
+        w.postMessage({ id: { k, n: e.pend, cx, cz, lod }, cx, cz, lod });
+      } else if (budget > 0) {
+        budget--;
+        this.#put(e, cx, cz, lod, buildChunkMesh(cx, cz, lod, this.material));
+        built++;
+      }
     }
     this.built = built;
     this.wanted = want.length;
+    this.progress = built / Math.max(1, want.length);
+    this.ready = built === want.length;
+    this.mainMs += performance.now() - t0;
   }
-  #drop(e) { if (e.mesh) { this.scene.remove(e.mesh); e.mesh.geometry.dispose(); } }
-  dispose() { for (const e of this.map.values()) this.#drop(e); this.map.clear(); }
+  #put(e, cx, cz, lod, mesh) {
+    if (e.mesh) this.#drop(e);
+    if (mesh) this.scene.add(mesh);
+    Object.assign(e, { mesh, lod, pend: null });
+    this.meshes++;
+  }
+  #drop(e) { if (e.mesh) { this.scene.remove(e.mesh); e.mesh.geometry.dispose(); e.mesh = null; } }
+  dispose() { for (const e of this.map.values()) this.#drop(e); this.map.clear(); for (const w of this.pool) w.terminate(); this.pool = []; }
 }

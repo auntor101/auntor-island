@@ -215,6 +215,15 @@ function water(x, z, h) {
   if (h < 0) { kind = 'sea'; return 0; }
   return null;
 }
+// Level of the fresh water a ground shader should key its wet band and bed colours to (river within 9 m, else the lake within 1.5 shore radii), or null.
+export function freshLevelAt(x, z) {
+  for (let i = 0; i < 2; i++) {
+    const g = geo[i];
+    if (near(g, x, z, 10) && nearest(g, x, z) < g.hw + 9) { profile(i, RS); return LVL; }
+  }
+  const dx = x - LAKE.x, dz = z - LAKE.z;
+  return Math.hypot(dx, dz) < 1.5 * lakeR(Math.atan2(dz, dx)) ? LAKE.level : null;
+}
 export const waterSurfaceAt = (x, z) => water(x, z, heightAt(x, z));
 export const isWet = (x, z) => waterSurfaceAt(x, z) !== null;
 
