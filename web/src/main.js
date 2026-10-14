@@ -1,8 +1,13 @@
-import { Scene, PerspectiveCamera, HemisphereLight, DirectionalLight, Fog, Color } from 'three';
+import { Scene, PerspectiveCamera, HemisphereLight, DirectionalLight, Fog, Color, Vector3 } from 'three';
 import { createRenderer, startLoop } from './render/renderer.js';
 import { heightAt } from './world/island.js';
 import { ChunkManager, createTerrainMaterial } from './world/terrain.js';
-import { createSky, LATE_AFTERNOON } from './world/sky.js';
+import { createSky } from './world/sky.js';
+import { skyPalette, sunDirection, moonDirection } from './world/time.js';
+import { createStars } from './world/stars.js';
+import { createMoon } from './world/moon.js';
+import { createSnow } from './world/snow.js';
+import { createHud, loadPrefs, TIMES } from './ui/hud.js';
 import { createWater } from './world/water.js';
 
 const gl = createRenderer(document.getElementById('gl'));
@@ -15,19 +20,45 @@ const hemi = new HemisphereLight('#ffffff', '#ffffff', 1.5);
 const sun = new DirectionalLight('#ffffff', 3);
 scene.add(hemi, sun, sun.target);
 const sky = createSky(), water = createWater(), terrain = createTerrainMaterial(), chunks = new ChunkManager(scene, terrain);
-scene.add(sky.mesh, water.mesh);
+const stars = createStars(), moon = createMoon(), snow = createSnow(camera);
+scene.add(sky.mesh, stars.points, moon.group, water.mesh, snow.points);
 
-// One palette drives sky, fog, lights and water (Task 4 swaps it over the day).
-function applyPalette(p) {
-  scene.fog.color.set(p.fog);
-  hemi.color.set(p.ambient);
-  hemi.groundColor.set(p.ambient).multiplyScalar(0.5).lerp(new Color('#8a6a48'), 0.4);
-  sun.color.set(p.sunColor);
-  sun.position.copy(p.sunDir).multiplyScalar(100);
-  sky.update(p);
-  terrain.update(p);
+// One palette drives sky, fog, lights, terrain and water. It is rebuilt every frame from the hour and the snow amount.
+const pal = { sunDir: new Vector3(), lightDir: new Vector3() }, WHITE = new Color('#ffffff'), tmp = new Color(), fogC = new Color(), horC = new Color(), zenC = new Color(), grey = new Color('#a8b4c8'), SNOWFOG = new Color('#e4edfb');
+const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+let fogNear = 80, fogFar = 260;
+function applyPalette(hours, snowK) {
+  const base = skyPalette(hours), sd = sunDirection(hours), md = moonDirection(hours), w = smooth(-0.15, 0.1, sd[1]), day = smooth(-0.1, 0.25, sd[1]);
+  Object.assign(pal, base);
+  pal.sunDir.fromArray(sd);
+  pal.lightDir.set(md[0] + (sd[0] - md[0]) * w, md[1] + (sd[1] - md[1]) * w, md[2] + (sd[2] - md[2]) * w).normalize(); // moonlight takes over below the horizon
+  pal.snow = snowK;
+  // snow weather: whiter, greyer, closer fog; the horizon follows the fog so the two always blend
+  fogC.set(base.fog).lerp(tmp.copy(SNOWFOG).multiplyScalar(0.2 + 0.8 * day), 0.35 * snowK);
+  horC.set(base.horizon).lerp(fogC, snowK);
+  zenC.set(base.zenith).lerp(tmp.copy(grey).multiplyScalar(0.15 + 0.85 * day), 0.3 * snowK);
+  pal.fog = fogC; pal.horizon = horC; pal.zenith = zenC;
+  fogNear = 80 * (1 - 0.4 * snowK); fogFar = 260 * (1 - 0.35 * snowK);
+  scene.fog.color.copy(fogC);
+  hemi.color.set(base.ambient);
+  hemi.groundColor.set(base.ambient).multiplyScalar(0.5).lerp(tmp.set('#8a6a48'), 0.4);
+  hemi.intensity = 1.5;
+  sun.color.set(base.sunColor); sun.intensity = 3 * base.sunIntensity;
+  sun.position.copy(pal.lightDir).multiplyScalar(100);
+  sky.update(pal);
+  terrain.update(pal);
+  return { day, base };
 }
-applyPalette(LATE_AFTERNOON);
+
+// Time of day: Auto is a full day in 6 real minutes; a fixed choice (or ?t=<hours>) pauses it. ?snow=0|1, ?phase=0..1 (moon) for repeatable shots.
+const params = new URLSearchParams(location.search);
+const prefs = loadPrefs();
+if (params.has('snow')) prefs.snow = params.get('snow') === '1';
+const fixedT = params.has('t') ? Number(params.get('t')) : null;
+let totalHours = 15.5, mode = prefs.mode, snowK = 0, snowOn = prefs.snow;
+const phaseOf = () => params.has('phase') ? Number(params.get('phase')) : (0.5 + Math.floor((totalHours + 12) / 24) / 8) % 1; // one step per in-game day
+const hud = document.getElementById('hud');
+createHud(hud, prefs, { onMode: (m) => { mode = m; }, onSnow: (on) => { snowOn = on; } });
 
 // Free-fly debug camera (Task 5 replaces it). WASD + shift, space/C up/down, mouse drag to look;
 // touch: left half drags to move, right half drags to look. ?cam=spawn|village|aerial|topdown|beach|sunset|volcano|peak (or x,y,z,yawDeg,pitchDeg) for repeatable views.
@@ -53,7 +84,6 @@ const end = (e) => touches.delete(e.pointerId);
 cv.addEventListener('pointerup', end);
 cv.addEventListener('pointercancel', end);
 
-const hud = document.getElementById('hud');
 const panel = document.createElement('pre');
 const btn = document.createElement('button');
 btn.textContent = 'stats';
@@ -71,12 +101,22 @@ startLoop((dt, now, rawMs) => {
   camera.position.set(x, Math.max(y, heightAt(x, z) + 2), z);
   camera.rotation.set(pitch, yaw, 0, 'YXZ');
 
+  if (fixedT != null) totalHours = fixedT;
+  else if (mode === 'auto') totalHours += dt * 24 / 360;
+  else totalHours = Math.floor(totalHours / 24) * 24 + TIMES[mode];
+  snowK += ((snowOn ? 1 : 0) - snowK) * Math.min(1, dt * 1.2);
+  const { day, base } = applyPalette(totalHours, snowK);
+  const px = gl.stats().pixelRatio;
   const alt = Math.max(0, camera.position.y - heightAt(x, z)); // lift the fog when flying high so the island stays visible
-  scene.fog.near = 80 + 2 * alt; scene.fog.far = 260 + 3 * alt;
+  scene.fog.near = fogNear + 2 * alt; scene.fog.far = fogFar + 3 * alt;
+  stars.points.position.copy(camera.position); moon.group.position.copy(camera.position);
+  stars.update(now / 1000, base.stars * (1 - 0.6 * snowK), px);
+  moon.update(totalHours, phaseOf(), base.moon * (1 - 0.5 * snowK));
+  snow.update(now / 1000, snowK, px, tmp.set('#8fa4d8').lerp(WHITE, day));
   chunks.update(camera.position);
   sky.mesh.position.copy(camera.position);
   water.mesh.position.set(Math.round(x / 8) * 8, 0, Math.round(z / 8) * 8);
-  water.update(now / 1000, LATE_AFTERNOON);
+  water.update(now / 1000, pal);
 
   gl.render(scene, camera, rawMs);
   acc += dt;

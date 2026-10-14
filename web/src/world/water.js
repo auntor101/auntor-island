@@ -56,9 +56,10 @@ export function createWater(radius = 600) {
         t = (floor(q) + smoothstep(.35, .65, f)) / 5.;
         vec3 col = mix(uDeep, uShallow, t * t) * uLight;
         float fres = pow(1. - max(dot(n, v), 0.), 4.);
-        col = mix(col, uSky, fres * .5);
+        col = mix(col, uSky, fres * .8);
         vec3 r = reflect(-v, n);
-        col += uSunColor * smoothstep(.992, .996, dot(r, uSunDir)) * .8; // sun glint
+        float sr = max(dot(r, uSunDir), 0.);
+        col += uSunColor * (smoothstep(.992, .996, sr) * .8 + pow(sr, 60.) * .5 + pow(sr, 6.) * .12); // sun glint plus a broad reflected glow
         // foam: surging band hugging the shore + a thin trailing line
         float surge = .5 + .5 * sin(uTime * 1.1 + p.x * .05 + p.y * .04);
         float wob = .25 * sin(p.x * .6 + uTime) * sin(p.y * .5 - uTime * .7);
@@ -82,8 +83,8 @@ export function createWater(radius = 600) {
     update(time, p) {
       u.uTime.value = time;
       u.uSky.value.set(p.horizon);
-      u.uSunColor.value.set(p.sunColor); u.uSunDir.value.copy(p.sunDir);
-      const l = u.uLight.value.set(p.ambient).multiplyScalar(0.55), k = 0.6 * Math.max(0, Math.min(1, p.sunDir.y * 2)), c = u.uSunColor.value;
+      u.uSunColor.value.set(p.sunColor).multiplyScalar(p.sunIntensity ?? 1); u.uSunDir.value.copy(p.lightDir || p.sunDir);
+      const l = u.uLight.value.set(p.ambient).multiplyScalar(0.55), k = 0.6 * Math.max(0, Math.min(1, (p.lightDir || p.sunDir).y * 2)), c = u.uSunColor.value;
       l.r += c.r * k; l.g += c.g * k; l.b += c.b * k;
     },
   };
