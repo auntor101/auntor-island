@@ -12,3 +12,12 @@ Bush_Common is prepared for a later bush/flower pass and is not loaded yet.
 The Stylized Nature MegaKit files were downloaded from the Poly Pizza mirror on 2026-10-14. The cat was downloaded from OpenGameArt on 2026-10-14, not from Poly Pizza. Re-confirm the licence of both on their source pages before launch.
 
 Files in `assets/nature/` are the original models with embedded textures removed and the textures shared once as 512 px WebP, produced by `tools/prepare-assets.js`.
+
+## Playable roster (web/public/models)
+
+| Asset | Author | Source | Licence |
+|---|---|---|---|
+| VRoid Studio sample characters Sakurada Fumiriya, Sendagaya Shino, Vita (embedded VRM licence `CC0`; Vivi and Victoria Rubin were also checked) | pixiv Inc. (VRoid Studio samples) | https://github.com/madjin/vrm-samples (`vroid/beta/`) | CC0 (read from each file's embedded metadata by `web/scripts/fetch-roster.mjs`) |
+| `VRM1_Constraint_Twist_Sample.vrm` (extra woman, not shipped unless chosen) | pixiv Inc. | https://github.com/pixiv/three-vrm (`packages/three-vrm/examples/models/`) | VRM 1 licence: avatarPermission everyone, modification and redistribution allowed, credit unnecessary (https://vrm.dev/licenses/1.0/) |
+
+The models in `web/public/models/` are the originals with textures shrunk to at most 1024 px by `web/scripts/shrink-vrm.mjs` (the VRM extension JSON is untouched; morph-target normal deltas are dropped and the rest stored sparse). The wizard is the man model with a procedural robe, hat and staff. Ears, hat, robe, staff and beard are generated in code (`web/src/play/attachments.js`).
