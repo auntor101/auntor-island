@@ -175,7 +175,30 @@
 
 ---
 
-### Task 7: Docs and the real-phone checklist
+### Task 8: Integrate: character select, the real hero, walking, sky, one game
+
+The three parallel branches are merged: movement (`web/src/play/player.js`, `controls.js`, `camera.js`, demo `web/demo/walk.js`), the day and night sky with its HUD (`main.js`, `hud.js`, `time.js`, `stars.js`, `moon.js`, `snow.js`), and the roster (`web/src/play/roster.js`, `attachments.js`, models `web/public/models/{man,woman,elf}.vrm`, demo `web/demo/roster.js`). This task makes them one game in `web/src/main.js` and adds the select screen.
+
+**Files:**
+- Create: `web/src/profile.js` (ES-module port of the old, tested `js/profile.js` name rules: `sanitizeName`, blocked-word list by whole word, invisible characters stripped, max 12 characters; keep its tests as `web/test/profile.test.js`), `web/src/ui/select.js`, `web/public/models/{man,woman,elf,wizard}.jpg` (portraits, see below)
+- Modify: `web/src/main.js`, `web/src/ui/hud.js`, `web/index.html`, `web/src/play/controls.js` (only the run-threshold fix), `web/src/play/camera.js` (distance)
+
+**Requirements:**
+- Flow: page loads, the island renders slowly behind a start card (chunks stream in with a progress bar showing real chunk loading progress), the **select screen** shows four large cards (Man, Woman, Elf, Wizard) with portraits, a name field and a Start button, in the paper style (cream #fff7ea, ink #2a1f3d, coral #ff7a59, Fraunces and Nunito), thumb friendly (cards 44 px or larger targets, layout works at 390 by 844 and 844 by 390 landscape), the choice and name persist in `localStorage` (try/catch, validated on load, `textContent` only for the name). Start loads the chosen character with `loadCharacter(id)` (from `roster.js`), shows a short loading state, drops the player at `LANDMARKS.spawn`, hides the card, and shows the note "Welcome to Auntor Island, <name>" for a few seconds.
+- Portraits: extract each model's embedded thumbnail texture into a small JPEG (about 256 px) with a one-off script `web/scripts/make-portraits.mjs` (parse the GLB JSON, take `extensions.VRM.meta.texture` or VRM 1 `thumbnailImage`; for the wizard and elf, composite or choose the best head crop; if a thumbnail is unusable, render a head-and-shoulders crop with the demo harness instead) and commit them under `web/public/models/`.
+- The walking game: hero from `loadCharacter`, `stepPlayer` + `createControls` + `createCamera` driving it, the character faces its movement heading and plays the procedural walk from its speed, feet on terrain, the chunk manager and the sky/palette/time/snow/HUD behave exactly as in the sky branch, and the old stand-in avatar and the debug fly camera remain only behind the `?fly` flag. Remove the demo-only scaffolding from `main.js` that this replaces.
+- Fixes carried over from reviews: (1) the HUD **Sky** panel must not overlap the stats text (stack them or put stats under the Sky button, both collapsible, both thumb sized); (2) stick **run** should trigger at about 100% of the stick radius or use a hold-to-run with a deliberate threshold, so a normal push does not run by accident (keep the Run button); (3) camera distance about 5.2 m instead of 4.5; (4) a soft blob shadow under the hero (one transparent circle, no real shadows); (5) hair/elf-ear/robe artifacts are NOT in scope here.
+- Keep the URL tools: `?cam=...` presets, `?t=<hours>&snow=0|1&phase=<0..1>`, `?char=man|woman|elf|wizard&name=...` (skips the select screen, for tests and screenshots), `?fly`.
+- Performance: no new per-frame allocations in `main.js`; one character plus the sky should stay near the measured numbers (about 70 draw calls for terrain and sky plus about 32 to 45 for the character); report measured calls and triangles at the spawn view with each of the four characters, and the load time of the first frame and of the character in software GL.
+
+- [ ] **Step 1:** Port `profile.js` and its tests first (write `web/test/profile.test.js` from the old root test cases, see it fail, make it pass).
+- [ ] **Step 2:** Build `select.js`, the portraits script and the new `main.js` flow.
+- [ ] **Step 3: Verify in a real browser** with `web/tools/shoot.mjs` (headless Edge, software GL; `--wait` can wait for text such as `ready` or the in-game note): screenshots at 390x844 `--touch` and 1280x720 of the select screen (cards, name field), then in game for each of the four characters standing at the spawn in the day and one at night with the moon, one with snow, and one mid-walk (use the `?bot=` style fixed-step driver from the demo if you keep it, or drive input with `--eval`). LOOK at them and say honestly what is wrong (overlapping UI, thumb reach, character scale against the terrain, camera framing, loading flash). Test the select screen with real touch events (puppeteer touchscreen).
+- [ ] **Step 4:** `npm test` and `npm run build` green. Commit: `feat: one game: select a character, walk the island under the day and night sky`.
+
+---
+
+### Task 9: Docs and the real-phone checklist
 
 **Files:**
 - Create: `web/README.md`
