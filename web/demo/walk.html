@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Auntor Island - walk demo</title>
+<style>
+:root { --cream:#fff7ea; --ink:#2a1f3d; --coral:#ff7a59; }
+* { box-sizing:border-box; }
+html, body { margin:0; height:100%; overflow:hidden; background:var(--cream); color:var(--ink); font:700 13px system-ui, sans-serif; overscroll-behavior:none; -webkit-user-select:none; user-select:none; }
+#gl { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+#hud { position:fixed; inset:0; pointer-events:none; padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+#status { position:absolute; top:calc(8px + env(safe-area-inset-top)); left:8px; padding:4px 10px; border-radius:12px; background:var(--cream); }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="hud"><span id="status">loading</span></div>
+<script type="module" src="./walk.js"></script>
+</body>
+</html>
