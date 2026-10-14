@@ -183,8 +183,7 @@ startLoop((dt, now, rawMs) => {
   snow.update(now / 1000, snowK, px, tmp.set('#8fa4d8').lerp(WHITE, day));
   chunks.update(cp);
   sky.mesh.position.copy(cp);
-  water.mesh.position.set(Math.round(cp.x / 8) * 8, 0, Math.round(cp.z / 8) * 8);
-  water.update(now / 1000, pal);
+  water.update(pal, now / 1000, camera.position);
 
   gl.render(scene, camera, rawMs);
   if (select) select.progress(chunks.built, chunks.wanted);
