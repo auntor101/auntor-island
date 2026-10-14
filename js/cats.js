@@ -51,14 +51,23 @@
   const BODY_LEN = 0.85;               // world length of a scale-1 cat
   const NEAR_NOTE = 2.5, ACTIVE_DIST = 30;
 
+  // Scale a hex colour so its brightest channel is at most max (bloom threshold is 0.9).
+  function capBright(hex, max) {
+    max = max || 0.85;
+    const c = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255), top = Math.max(c[0], c[1], c[2]);
+    const k = top > max ? max / top : 1;
+    return '#' + c.map(v => ('0' + Math.round(v * k * 255).toString(16)).slice(-2)).join('');
+  }
+
   function coat(obj, breed) {
     const GRAD = root.LI.gfx.GRAD;
+    const body = capBright(breed.body), accent = capBright(breed.accent);
     obj.traverse(o => {
       if (!o.isMesh) return;
       const mats = Array.isArray(o.material) ? o.material : [o.material];
       const out = mats.map(m => {
         const n = (m.name || '').toLowerCase();
-        const color = n.includes('white') ? breed.accent : n.includes('pink') ? '#e9a3a8' : breed.body;
+        const color = n.includes('white') ? accent : n.includes('pink') ? '#e9a3a8' : body;
         return new THREE.MeshToonMaterial({ color, gradientMap: GRAD, skinning: !!o.isSkinnedMesh });
       });
       o.material = Array.isArray(o.material) ? out : out[0];
@@ -66,6 +75,7 @@
     });
   }
 
+  // Assumes non-interleaved attributes, no morph targets and non-indexed geometry (true for FBXLoader output).
   // The FBX interleaves its 3 materials in ~72 tiny groups (one draw call each); reorder triangles so each material is one group.
   function regroup(geo) {
     if (geo.index || geo.groups.length <= 3) return;
@@ -84,6 +94,7 @@
 
   async function spawn(o) {
     const A = root.LI.assets;
+    if (live.length > 0) return live.length;
     try {
       if (!A || !A.fbx || !root.LI.gfx) return 0;
       const src = await A.fbx('animals', 'Cat');
@@ -98,8 +109,10 @@
       const rand = root.LI.gfx.rand;
       const group = new THREE.Group();
       const made = [];
+      const order = BREEDS.slice();
+      for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
       for (let i = 0; i < o.count; i++) {
-        const breed = BREEDS[i % BREEDS.length];
+        const breed = order[i % order.length];
         let x = 0, z = 0, tries = 0;
         do { const a = rand() * Math.PI * 2, d = 3 + rand() * 12; x = o.near[0] + Math.cos(a) * d; z = o.near[1] + Math.sin(a) * d; tries++; } while (!o.ok(x, z) && tries < 40);
         if (!o.ok(x, z)) continue;
@@ -130,6 +143,7 @@
     for (const c of live) {
       const o = c.o, s = c.state;
       const near = Math.hypot(c.holder.position.x - cam.x, c.holder.position.z - cam.z) < ACTIVE_DIST;
+      c.holder.visible = near;
       if (near) {
         stepCat(s, dt, g.rand, o.ok);
         const target = s.mode === 'walk' ? 1 : 0;
@@ -140,11 +154,11 @@
         let d = s.heading + FACE - c.holder.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d));
         c.holder.rotation.y += d * Math.min(1, dt * 8);
       }
-      if (!c.met && Math.hypot(s.x - player.x, s.z - player.z) < NEAR_NOTE) { c.met = true; g.note('A ' + c.breed.name + '!'); }
+      if (!c.met && Math.hypot(s.x - player.x, s.z - player.z) < NEAR_NOTE && g.canNote && g.canNote()) { c.met = true; g.note('A ' + c.breed.name + '!'); }
     }
   }
 
-  const api = { BREEDS, makeState, stepCat, spawn, update };
+  const api = { BREEDS, makeState, stepCat, capBright, spawn, update };
   const LI = root.LI = root.LI || {};
   LI.cats = Object.assign(LI.cats || {}, api);
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

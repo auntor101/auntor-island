@@ -12,6 +12,18 @@ for (const b of BREEDS) {
   assert.ok(b.scale >= 0.9 && b.scale <= 1.3, b.name + ' has a sane scale');
 }
 
+// coat brightness cap (bloom threshold is 0.9)
+const { capBright } = cats;
+assert.strictEqual(typeof capBright, 'function', 'capBright is exported');
+const chan = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+assert.strictEqual(capBright('#34303a'), '#34303a', 'dark colours are unchanged');
+assert.strictEqual(capBright('#ffffff'), '#d9d9d9', 'white caps to about 0.85');
+const a0 = chan('#f6d9b0'), a1 = chan(capBright('#f6d9b0'));
+assert.ok(Math.abs(a1[1] / a1[0] - a0[1] / a0[0]) < 0.02 && Math.abs(a1[2] / a1[0] - a0[2] / a0[0]) < 0.02, 'hue ratios preserved');
+for (const b of BREEDS) for (const k of ['body', 'accent']) {
+  assert.ok(Math.max(...chan(capBright(b[k]))) <= 0.85 + 1 / 255, b.name + ' ' + k + ' capped under 0.85');
+}
+
 // a free cat eventually walks and moves, but never leaves a 10 unit radius
 const rand = lcg(7);
 const ok = (x, z) => Math.hypot(x, z) < 10;
@@ -43,6 +55,9 @@ ctx.window = ctx; vm.createContext(ctx);
 for (const f of ['js/assets.js', 'js/cats.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, '..', f), 'utf8'), ctx, { filename: f });
 (async () => {
   assert.strictEqual(await ctx.LI.cats.spawn({ scene: {}, h: () => 0, ok: () => true, count: 3, near: [0, 0] }), 0, 'spawn resolves 0 without loaders');
+  ctx.LI.gfx = { GRAD: {}, rand: Math.random, note() {}, canNote: () => true };
+  ctx.LI.assets.fbx = async () => null;
+  assert.strictEqual(await ctx.LI.cats.spawn({ scene: {}, h: () => 0, ok: () => true, count: 3, near: [0, 0] }), 0, 'spawn resolves 0 when the model is missing');
   assert.doesNotThrow(() => ctx.LI.cats.update(0.016, { x: 0, y: 0, z: 0 }, { x: 0, z: 0 }), 'update before spawn is a no-op');
   console.log('cats spawn tests ok');
 })().catch(e => { console.error(e); process.exit(1); });

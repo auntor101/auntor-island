@@ -784,7 +784,7 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(window.__maxD
   updatePuffs(dt);updateCamera(dt);updateInteract();updateLabels();render();}
 
 /* ================= boot ================= */
-LI.gfx={GRAD,Q,TOUCH,note,rand:Math.random,camera};
+LI.gfx={GRAD,Q,TOUCH,note,rand:Math.random,camera,canNote:()=>mode==='play'&&!noteEl.classList.contains('on')};
 HUB=buildHub();INNER=buildInner();HUB.portalMat.uniforms.tPortal.value=portalRT.texture;
 function store(){try{return window.localStorage;}catch(e){return null;}}
 function applyProfile(p){
