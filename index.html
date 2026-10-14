@@ -2,194 +2,20 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' blob:; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1b1530">
-<meta property="og:title" content="Auntor Island">
-<meta property="og:description" content="A tiny world to wander. Help the villagers and find what is hiding inside the snow globe.">
+<meta name="theme-color" content="#fff7ea">
 <title>Auntor Island</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Ccircle cx=%2732%27 cy=%2732%27 r=%2730%27 fill=%27%23ff7a59%27/%3E%3Ccircle cx=%2732%27 cy=%2732%27 r=%2716%27 fill=%27%23fff7ea%27/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;1,600&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&display=swap">
-<style>
-/* Layout: full-screen game canvas; storybook paper UI floats over it (quest card top-left, stars top-right, dialog bottom). */
-:root{
-  --ink:#2a1f3d; --paper:#fff7ea; --paper-2:#f3e6d2; --coral:#ff7a59; --gold:#ffc94d; --muted:#7b6a86; --night:#1b1530;
-  --display:'Fraunces',Georgia,'Times New Roman',serif;
-  --body:'Nunito',system-ui,-apple-system,'Segoe UI',sans-serif;
-  color-scheme:light;
-}
-html,body{height:100%;margin:0;overflow:hidden;background:var(--night);color:var(--ink)}
-body{font-family:var(--body);font-size:15px}
-#app{position:fixed;inset:0;overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
-#gl{display:block;width:100%;height:100%;touch-action:none;outline:none}
-button{font-family:var(--body);cursor:pointer}
-button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
-
-/* HUD */
-.hud{position:absolute;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top,0px) + 14px) 14px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;pointer-events:none;transition:opacity .4s}
-.hud.off,.ctrl.off{opacity:0;pointer-events:none!important}
-.quest{background:rgba(255,247,234,.9);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-radius:16px;padding:10px 14px 11px;max-width:min(330px,64vw);box-shadow:0 8px 24px -12px rgba(42,31,61,.5);border:1.5px solid rgba(42,31,61,.12)}
-.quest h2{margin:0 0 4px;font:600 italic 13px var(--display);color:var(--coral);letter-spacing:.01em}
-.quest ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
-.quest li{font-weight:700;font-size:14px;line-height:1.35;display:flex;gap:8px}
-.quest li::before{content:'';flex:0 0 8px;height:8px;margin-top:6px;border-radius:50%;border:2px solid var(--coral)}
-.quest li.new{animation:pop .5s ease}
-.tr{display:flex;gap:8px;pointer-events:auto}
-.pill{white-space:nowrap;background:rgba(255,247,234,.9);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-radius:999px;padding:8px 13px;font-weight:800;font-size:14px;box-shadow:0 8px 24px -12px rgba(42,31,61,.5);border:1.5px solid rgba(42,31,61,.12);display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums;color:var(--ink)}
-.pill .star{color:#f2a922;font-size:16px;line-height:1}
-.pill.pop{animation:pop .6s ease}
-#snd{width:40px;height:40px;justify-content:center;padding:0}
-@keyframes pop{0%{transform:scale(1)}35%{transform:scale(1.18)}100%{transform:scale(1)}}
-
-/* name labels */
-#labels{position:absolute;inset:0;pointer-events:none}
-.label{position:absolute;left:0;top:0;transform:translate(-50%,-100%);font:700 13px var(--display);background:var(--paper);color:var(--ink);padding:3px 10px 4px;border-radius:999px;white-space:nowrap;box-shadow:0 4px 12px -6px rgba(42,31,61,.6);border:1.5px solid rgba(42,31,61,.15);opacity:0;transition:opacity .25s}
-.label.show{opacity:1}
-
-/* controls */
-.ctrl{transition:opacity .3s}
-#joy{position:absolute;width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%;background:rgba(255,247,234,.22);border:2px solid rgba(255,247,234,.6);pointer-events:none;opacity:0;transition:opacity .15s}
-#joy.on{opacity:1}
-#knob{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:var(--paper);box-shadow:0 4px 12px rgba(42,31,61,.35)}
-#joyHint{position:absolute;left:18px;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);font-weight:700;font-size:12px;color:#fff;background:rgba(42,31,61,.45);padding:6px 11px;border-radius:999px;pointer-events:none;transition:opacity .4s}
-#act{position:absolute;right:18px;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);min-width:76px;height:76px;padding:0 18px;border-radius:38px;border:0;background:var(--coral);color:#fff;font-weight:800;font-size:15px;box-shadow:0 10px 24px -8px rgba(255,90,60,.8),inset 0 -4px 0 rgba(0,0,0,.12);transform:scale(.6);opacity:0;pointer-events:none;transition:transform .25s cubic-bezier(.3,1.6,.5,1),opacity .2s;display:flex;align-items:center;gap:8px}
-#act.on{transform:scale(1);opacity:1;pointer-events:auto}
-#act kbd{font:800 12px var(--body);background:rgba(255,255,255,.25);border-radius:6px;padding:2px 6px}
-#keys{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);transform:translateX(-50%);font-weight:700;font-size:12px;color:#fff;background:rgba(42,31,61,.45);padding:6px 12px;border-radius:999px;pointer-events:none;white-space:nowrap}
-
-/* notifications */
-#note{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 76px);transform:translate(-50%,-10px);background:var(--ink);color:var(--paper);padding:9px 16px;border-radius:999px;font-weight:800;font-size:14px;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;white-space:nowrap;max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis}
-#note.on{opacity:1;transform:translate(-50%,0)}
-
-/* dialog */
-#dlg{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);width:min(600px,calc(100% - 24px));transform:translate(-50%,30px);opacity:0;transition:opacity .25s,transform .3s cubic-bezier(.3,1.4,.5,1);background:var(--paper);border-radius:22px;padding:22px 20px 16px;box-shadow:0 18px 50px -18px rgba(20,10,40,.7);border:2px solid rgba(42,31,61,.14);box-sizing:border-box;cursor:pointer}
-#dlg.on{opacity:1;transform:translate(-50%,0)}
-#dName{position:absolute;top:-15px;left:18px;--tag:var(--coral);background:var(--tag);color:#fff;font:700 15px var(--display);padding:5px 14px 6px;border-radius:999px;box-shadow:0 4px 10px -4px rgba(0,0,0,.35)}
-#dText{margin:0;font-size:17px;line-height:1.5;font-weight:700;min-height:3em;text-wrap:pretty}
-#dOpts{display:flex;flex-direction:column;gap:8px;margin-top:12px}
-.opt{display:flex;align-items:center;gap:10px;text-align:left;border:2px solid rgba(42,31,61,.14);background:#fff;border-radius:14px;padding:10px 12px;font-weight:800;font-size:15px;color:var(--ink);transition:transform .15s,border-color .15s,background .15s}
-.opt:hover{border-color:var(--coral);transform:translateX(3px)}
-.opt .k{flex:0 0 24px;height:24px;border-radius:50%;background:var(--paper-2);display:grid;place-items:center;font-size:12px}
-.next{align-self:flex-end;border:0;background:transparent;color:var(--coral);font-weight:800;font-size:14px;padding:4px 2px;display:flex;align-items:center;gap:6px}
-.next::after{content:'';width:0;height:0;border-left:8px solid var(--coral);border-top:6px solid transparent;border-bottom:6px solid transparent;animation:nudge 1s ease-in-out infinite}
-@keyframes nudge{50%{transform:translateX(4px)}}
-
-/* overlays */
-#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .35s}
-#flash.on{opacity:1}
-#start{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-start;padding:0 24px calc(env(safe-area-inset-bottom,0px) + 40px);background:linear-gradient(180deg,rgba(27,21,48,0) 30%,rgba(27,21,48,.72) 100%);color:#fff;transition:opacity .6s}
-#start.gone{opacity:0;pointer-events:none}
-#start .inner{margin-top:auto;max-width:560px;display:flex;flex-direction:column;gap:12px}
-.eyebrow{font-weight:800;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:0}
-#start h1{font:600 italic clamp(56px,13vw,108px)/.9 var(--display);margin:0;letter-spacing:-.02em;text-shadow:0 4px 30px rgba(255,180,120,.45)}
-#start p.sub{margin:0;font-size:17px;line-height:1.5;font-weight:700;max-width:44ch;color:rgba(255,255,255,.9)}
-#go{align-self:flex-start;margin-top:8px;border:0;border-radius:999px;background:var(--paper);color:var(--ink);font-weight:800;font-size:17px;padding:15px 26px;box-shadow:0 14px 30px -10px rgba(0,0,0,.5);transition:transform .2s}
-#go:hover{transform:translateY(-2px)}
-#go:disabled{opacity:.6;cursor:default}
-#loadmsg{font-size:13px;font-weight:700;color:rgba(255,255,255,.75);margin:0}
-#start{overflow-y:auto}
-#pick{display:flex;flex-direction:column;gap:10px;align-self:flex-start;background:rgba(255,247,234,.94);color:var(--ink);border-radius:20px;padding:14px;width:min(360px,100%);box-sizing:border-box;box-shadow:0 14px 30px -12px rgba(0,0,0,.5)}
-#pick .seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--paper-2);border-radius:999px;padding:4px}
-#pick .seg button{min-height:44px;border:0;border-radius:999px;background:transparent;color:var(--ink);font-weight:800;font-size:15px}
-#pick .seg button.on{background:var(--coral);color:#fff}
-#pname{min-height:44px;box-sizing:border-box;border:2px solid rgba(42,31,61,.18);border-radius:14px;padding:0 14px;font:800 16px var(--body);color:var(--ink);background:#fff;-webkit-user-select:text;user-select:text}
-#pname:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
-#pick .sws{display:flex;gap:10px}
-#pick .sw{width:44px;height:44px;border-radius:50%;border:3px solid transparent;box-shadow:0 0 0 2px rgba(42,31,61,.18);padding:0}
-#pick .sw.on{border-color:var(--ink)}
-#end{position:absolute;inset:0;display:grid;place-items:center;background:rgba(27,21,48,.55);padding:16px;opacity:0;pointer-events:none;transition:opacity .4s}
-#end.on{opacity:1;pointer-events:auto}
-.card{background:var(--paper);border-radius:26px;padding:26px 24px 22px;width:min(400px,100%);box-sizing:border-box;text-align:center;box-shadow:0 30px 70px -20px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:10px;align-items:center}
-.card .eyebrow{color:var(--coral)}
-.card .word{font:600 italic 64px/1 var(--display);margin:4px 0;color:var(--ink);letter-spacing:.02em}
-.card p{margin:0;font-weight:700;line-height:1.5;color:var(--muted);max-width:32ch}
-.card .stars{font-size:28px;letter-spacing:6px;color:#f2a922}
-.card .stars .dim{color:#ddd0bf}
-.card button{margin-top:8px;border:0;border-radius:999px;background:var(--coral);color:#fff;font-weight:800;font-size:16px;padding:13px 24px}
-@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
-</style>
+<style>:root{--cream:#fff7ea;--ink:#2a1f3d;--coral:#ff7a59;--display:"Fraunces",serif;--body:"Nunito",system-ui,sans-serif}*{box-sizing:border-box}html,body{background:var(--cream);height:100%;color:var(--ink);font-family:var(--body);margin:0;overflow:hidden}#gl{touch-action:none;width:100%;height:100%;display:block;position:fixed;inset:0}#hud{pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);position:fixed;inset:0}#hud button,#hud pre{pointer-events:auto}#hud button{border:2px solid var(--ink);background:var(--cream);min-width:44px;min-height:44px;color:var(--ink);font:800 14px var(--body);border-radius:22px;margin:8px;padding:0 14px}#hud pre{background:var(--cream);width:max-content;font:700 13px var(--body);border-radius:12px;margin:0 8px;padding:8px 12px}#hud .sky{top:calc(env(safe-area-inset-top) + 0px);right:calc(env(safe-area-inset-right) + 0px);flex-direction:column;align-items:flex-end;display:flex;position:absolute}#hud .sky-panel{pointer-events:auto;border:2px solid var(--ink);background:var(--cream);border-radius:16px;width:min(260px,100vw - 16px);margin:0 8px;padding:10px 12px 12px}#hud .sky-panel[hidden]{display:none}#hud .sky-h{font:700 italic 16px var(--display);margin:4px 0 6px}#hud .sky-row{flex-wrap:wrap;gap:6px;display:flex}#hud .sky-panel .chip{flex:auto;min-width:68px;min-height:44px;margin:0;padding:0 12px}#hud .sky-panel .chip.on{background:var(--coral)}#hud .sky-panel .snow{width:100%}#hud .note{left:50%;top:calc(env(safe-area-inset-top) + 14px);border:2px solid var(--ink);background:var(--cream);max-width:calc(100vw - 150px);font:700 italic 16px var(--display);text-align:center;opacity:0;pointer-events:none;border-radius:16px;padding:10px 16px;transition:opacity .5s;position:absolute;transform:translate(-50%)}#hud .note.on{opacity:1}#ui .sel{z-index:5;padding:max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));background:#2a1f3d2e;display:flex;position:fixed;inset:0;overflow-y:auto}#ui .sel[hidden]{display:none}#ui .sel-card{border:3px solid var(--ink);background:var(--cream);text-align:center;width:min(100%,440px);box-shadow:6px 6px 0 var(--ink);border-radius:24px;margin:auto;padding:16px}#ui .sel-title{font:700 30px/1.1 var(--display);margin:0}#ui .sel-sub{font:700 italic 16px var(--display);margin:2px 0 12px}#ui .sel-grid{grid-template-columns:1fr 1fr;gap:10px;display:grid}#ui .sel-char{border:3px solid var(--ink);min-height:44px;color:var(--ink);font:800 16px var(--body);touch-action:manipulation;background:#fff;border-radius:18px;flex-direction:column;align-items:center;gap:4px;padding:6px 6px 8px;display:flex}#ui .sel-char img{aspect-ratio:1;object-fit:cover;border-radius:12px;width:100%;max-width:128px;height:auto}#ui .sel-char.on{background:var(--coral);box-shadow:0 0 0 3px var(--cream), 0 0 0 6px var(--ink)}#ui .sel-row{gap:10px;margin-top:14px;display:flex}#ui .sel-name{border:3px solid var(--ink);min-width:0;min-height:52px;color:var(--ink);font:700 16px var(--body);background:#fff;border-radius:26px;flex:1;padding:0 14px}#ui .sel-go{border:3px solid var(--ink);background:var(--coral);min-width:104px;min-height:52px;color:var(--ink);font:800 18px var(--body);touch-action:manipulation;border-radius:26px}#ui .sel-go:disabled{opacity:.7}#ui .sel-bar{border:2px solid var(--ink);background:#fff;border-radius:6px;height:8px;margin-top:14px;overflow:hidden}#ui .sel-bar div{background:var(--coral);width:0;height:100%;transition:width .3s}#ui .sel-msg{font:700 13px var(--body);margin-top:4px}@media (orientation:landscape) and (height<=520px){#ui .sel-card{width:min(100%,780px);padding:10px 14px}#ui .sel-title{font-size:24px;display:inline}#ui .sel-sub{margin-left:10px;display:inline}#ui .sel-grid{grid-template-columns:repeat(4,1fr);margin-top:8px}#ui .sel-char img{max-width:86px}#ui .sel-row{margin-top:10px}#ui .sel-bar{margin-top:8px}#ui .sel-msg{display:none}}</style>
+  <script type="module" crossorigin src="./assets/index-C9kwi8et.js"></script>
 </head>
 <body>
-<div id="app">
-  <canvas id="gl" aria-label="Auntor Island, a small 3D world you can walk around"></canvas>
-  <div id="labels"></div>
-
-  <div class="hud off" id="hud">
-    <div class="quest"><h2>Quests</h2><ul id="qlist"></ul></div>
-    <div class="tr">
-      <div class="pill" id="stars" aria-label="Stars found"><span class="star">★</span><span id="starN">0 / 3</span></div>
-      <button class="pill" id="snd" type="button" aria-label="Turn sound off">♪</button>
-    </div>
-  </div>
-
-  <div class="ctrl off" id="ctrl">
-    <div id="joy"><div id="knob"></div></div>
-    <div id="joyHint" hidden>Drag on the left to walk · right to look</div>
-    <div id="keys" hidden>WASD to walk · drag to look · E to talk</div>
-    <button id="act" type="button"><span id="actLabel">Talk</span><kbd id="actKey" hidden>E</kbd></button>
-  </div>
-
-  <div id="note" role="status" aria-live="polite"></div>
-
-  <div id="dlg" hidden role="dialog" aria-live="polite">
-    <div id="dName">Name</div>
-    <p id="dText"></p>
-    <div id="dOpts"></div>
-  </div>
-
-  <div id="flash"></div>
-
-  <div id="end" aria-hidden="true">
-    <div class="card">
-      <p class="eyebrow">Secret found</p>
-      <div class="stars" id="endStars">★★★</div>
-      <div class="word">LUMEN</div>
-      <p id="endText">In the real version, DM this word to @101auntojje for a surprise.</p>
-      <button id="endBtn" type="button">Keep exploring</button>
-    </div>
-  </div>
-
-  <div id="start">
-    <div class="inner">
-      <p class="eyebrow">A tiny world by @101auntojje</p>
-      <h1>Auntor Island</h1>
-      <p class="sub">Wander the island, help the villagers, answer a few riddles, and find out what is hiding inside the snow globe on the hill.</p>
-      <div id="pick" role="group" aria-label="Choose your character">
-        <div class="seg" role="group" aria-label="Character">
-          <button type="button" data-g="m" aria-pressed="true">Male</button>
-          <button type="button" data-g="f" aria-pressed="false">Female</button>
-        </div>
-        <input id="pname" type="text" maxlength="12" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Your name" aria-label="Your name">
-        <div class="sws" id="looks" role="group" aria-label="Outfit"></div>
-        <div class="sws" id="skins" role="group" aria-label="Skin tone"></div>
-      </div>
-      <button id="go" type="button" disabled>Enter the island</button>
-      <p id="loadmsg">Building the island…</p>
-    </div>
-  </div>
-</div>
-
-<script src="vendor/three/three.min.js"></script>
-<script src="vendor/three/CopyShader.js"></script>
-<script src="vendor/three/LuminosityHighPassShader.js"></script>
-<script src="vendor/three/FXAAShader.js"></script>
-<script src="vendor/three/EffectComposer.js"></script>
-<script src="vendor/three/RenderPass.js"></script>
-<script src="vendor/three/ShaderPass.js"></script>
-<script src="vendor/three/UnrealBloomPass.js"></script>
-<script src="vendor/three/GLTFLoader.js"></script>
-<script src="vendor/three/fflate.min.js"></script>
-<script src="vendor/three/FBXLoader.js"></script>
-<script src="vendor/three/SkeletonUtils.js"></script>
-<script src="js/profile.js"></script>
-<script src="js/assets.js"></script>
-<script src="js/nature.js"></script>
-<script src="js/cats.js"></script>
-<script src="js/game.js"></script>
-<script src="js/charselect.js"></script>
-
+<canvas id="gl"></canvas>
+<div id="hud"></div>
+<div id="ui"></div>
 </body>
 </html>
