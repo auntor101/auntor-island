@@ -10,6 +10,15 @@ Status: **awaiting owner approval. Nothing below is executed yet.** Written 2026
 - Names (Auntor's Island, Nma, the Colonel, Ukk-ass, Bang-odi, Tom, Nanda) and the banter stay.
 - Wizards and elves, a 20 times bigger island, anime or cartoon quality, mid-range to flagship phones including iPhone, lean code (ponytail).
 
+## Already built and live in the new game (at /dragon/ today)
+| Feature | State |
+|---|---|
+| Sun, sunrise, sunset, noon, **night with a sky full of stars, a moon with phases**, switchable **snow**, an Auto day cycle (about 6 real minutes) | Built. Polish left: daytime snow is washed out, moon craters faint, no crossfade between fixed times |
+| **Mountains:** snow-capped north mountain, volcano with a lava crater, west cliffs, sea stacks, black-sand beach, cove, tower headland | Built. Polish left: mountain rock looks striped, needs natural strata and gullies |
+| **20 times bigger island** (about 300 m across, 70,000 m2) | Built; it is still **empty** between landmarks (that is what Phase 1 fixes) |
+| Painted anime ground (grass strokes, patches, forest dapples) | Built as a surface texture; **real 3D grass and flowers are still to do** |
+| Four anime characters, select screen, name, welcome, walking, touch controls | Built |
+
 ## What "use backend, GPU or Cloudflare" will mean (honest version)
 | Idea | Verdict |
 |---|---|
@@ -30,10 +39,14 @@ Status: **awaiting owner approval. Nothing below is executed yet.** Written 2026
 6. **Perf infrastructure:** terrain chunk Web Worker; a perf HUD that records draw calls, triangles, frame times and long frames; a repeatable "walk the island" bot that reports frame-time percentiles.
 Gate: all tests green, live link works at root, old game restorable from the archive branch (proved by checking it out in a temp folder and building it).
 
-## Phase 1: The living world (parallel agents, disjoint files)
+## Phase 1: The living world (parallel agents, disjoint files; tasks A, B, C, J, K, L, M, run in two or three waves)
 - **A. Vegetation and props:** instanced trees (summer, autumn and spring belts), pines, bushes, **flowers and grass tufts** (from the CC0 nature kit already in use), rocks, reeds, driftwood; wind sway in the vertex shader; biome rules from `zoneAt`. Fix the mountain look (irregular rock strata and snow, no candy stripes).
 - **B. Village and buildings:** a procedural longhouse generator (timber A-frames, turf and shingle roofs, carved gables, doors, banners, lanterns), the **Auntor's Harbour** layout (roads, harbour with longships, great hall, forge), the **Feast Quarter** street (tavern district), **Wizard Tower** headland, **Elven Grove** treehouses, bridges and docks. Night lighting with emissive windows and a few cheap point lights. Buildings are instanced and merged per chunk.
 - **C. Companion and animals:** the original dragon hatchling plus dog and cat companions (picker at the start), bonding (pet, feed, play), cats and dogs roaming the island, noticing you, coming over and **meowing** and barking (generated sound), petting.
+- **J. Paths, landmarks and navigation (was missing):** a **trail network** that joins every landmark (village to harbour, roost, hatchery and academy, beach, cove, wizard tower, elven grove, volcano ember field, mountain viewpoint and glacier ice cave): routes planned with a path search over the terrain (avoid steep slopes and water), a worn dirt or cobble path painted into the ground and gently flattened, wooden **signposts** at junctions with arrows to each place, **lanterns** along main roads that light at dusk, bridges where a trail crosses a gorge, small rest spots with benches and a view, a **minimap** and a compass arrow to the current objective, quest markers, and a **point of interest about every 40 to 60 m** so the 300 m island never feels empty. Fast travel signposts unlock as you discover places.
+- **K. The dragon island itself (How to Train Your Dragon-style, original):** the **Dragon Academy** with a training yard and an **arena**, the **Hatchery** (eggs, nests, warm glow), **Roost cliffs** with nests and takeoff ledges, **dragon race courses** of rings through the sea stacks and around the volcano, an **ice cave** in the glacier with crystals and treasure, **hot springs** on the beach, a **great hall** with a hearth and long tables, a **forge**, longships in the harbour, banners and carved posts, a **volcano ember field** with fire dragons. All names, shapes and music original.
+- **L. 3D grass and flowers:** instanced grass blades around the player (thinning with distance), wildflower fields, flower meadows near the village and the festival fields, wind in the vertex shader, trampled grass where you walk.
+- **M. World reacts to time:** lanterns and windows light at dusk, villagers walk home and sleep at night while night NPCs appear (the stargazer, the owl cats), fireflies at night, dawn mist and sunset glow on the sea, snow piles on roofs when snow is on, cats sleep curled at night.
 Gate (each): screenshot critique at 390×844 and 844×390, draw calls and triangles measured, code and security review.
 
 ## Phase 2: People, voices and story
