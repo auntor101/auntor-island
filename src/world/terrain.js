@@ -1,104 +1,23 @@
 import { BufferGeometry, BufferAttribute, Mesh, Color, DataTexture, RGBAFormat, LinearFilter, LinearMipmapLinearFilter, RepeatWrapping, ShaderMaterial, UniformsUtils, UniformsLib, Vector3 } from 'three';
-import { heightAt, zoneAt, woods, LANDMARKS, SEA_STACKS } from './island.js';
-import { CHUNK, VIEW_RADIUS, chunkKey, chunksAround, lodFor } from './chunks.js';
+import { CHUNK, VIEW_RADIUS, chunkKey, chunksAround, lodFor, buildChunkData } from './chunks.js';
 
-const STEP = [1, 2, 4]; // metres between vertices per lod; each grid is a subset of the finer one
-const GROVE = { x: -72, z: -30 };
-const smooth = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
-
-// Per-vertex zone WEIGHTS (the fragment shader does the actual painting, so borders stay crisp).
-// wa = unused, rock, sand, snow; wb = ember, path, forest, black sand; au = curvature (+ = gully), grove.
-// Grass is implicit: 1 - the largest other weight.
-function weigh(x, z, h, curv, wa, wb, au, k) {
-  const zone = zoneAt(x, z), r = Math.hypot(x, z), lo = Math.sin(x * 0.09 + 2 * Math.sin(z * 0.05 + 1)) * Math.sin(z * 0.1 + 2 * Math.sin(x * 0.06));
-  const vil = 1 - smooth(30, 40, r);
-  let rock = 0, sand = 0, snow = 0, ember = 0, black = 0, grove = 0;
-  let path = smooth(-0.2, 0.5, lo) * 0.8 * vil, forest = smooth(-0.2, 0.9, woods(x, z)) * (1 - vil);
-  const low = (t) => { path *= t; forest *= t; }; // fade lowland detail where sand takes over
-  switch (zone) {
-    case 'sea': sand = 1; low(0); break;
-    case 'beach': {
-      const t = smooth(0.3, 1, h), bl = 1 - smooth(25, 55, Math.hypot(x - LANDMARKS.beach.x, z - LANDMARKS.beach.z));
-      sand = (1 - t) * (1 - bl); black = (1 - t) * bl; low(t); break;
-    }
-    case 'cove': { const t = smooth(1.5, 3, h); sand = 1 - t; low(t); break; }
-    case 'grove': grove = 1 - smooth(14, 24, Math.hypot(x - GROVE.x, z - GROVE.z)); forest = forest * (1 - grove) + 0.35 * grove; break;
-    case 'roost': rock = smooth(8, 18, h); break;
-    case 'tower': rock = 0.55 * (1 - smooth(8, 16, Math.hypot(x - LANDMARKS.tower.x, z - LANDMARKS.tower.z))); break;
-    case 'glacier': snow = 1; break;
-  }
-  if (zone !== 'glacier') { rock = Math.max(rock, smooth(25, 55, h)); snow = Math.max(snow, smooth(50, 80, h) * 0.9); }
-  rock *= 1 - snow;
-  { const hi = Math.max(smooth(30, 50, h), snow, rock); forest *= 1 - hi; path *= 1 - hi; }
-  if (zone !== 'sea') ember = 1 - smooth(32, 46, Math.hypot(x - 98, z - 8));
-  const nv = 1 - ember; rock *= nv; sand *= nv; black *= nv; path *= nv; forest *= nv;
-  for (const s of SEA_STACKS) { // sea stacks read as rock whatever the zone says
-    const q = (x - s.x) ** 2 + (z - s.z) ** 2;
-    if (q < 100) { rock = Math.max(rock, 2 * smooth(100, 36, q)); break; }
-  }
-  wa[k] = 0; wa[k + 1] = rock; wa[k + 2] = sand; wa[k + 3] = snow;
-  wb[k] = ember; wb[k + 1] = path; wb[k + 2] = forest; wb[k + 3] = black;
-  au[k / 2] = curv; au[k / 2 + 1] = grove;
-}
-
-// Chunk mesh. Seams between lods are hidden with skirts: a downward strip around the border
-// (depth 1 + 2 * step) that copies the edge vertex data. Returns null when the whole
-// chunk is deep under the sea (the opaque water hides it), which saves draw calls.
-export function buildChunkMesh(cx, cz, lod, material) {
-  const step = STEP[lod], n = CHUNK / step, V = n + 1, ox = cx * CHUNK, oz = cz * CHUNK;
-  // heights on a grid padded by one step (lod 0 takes its normals from it)
-  const P = n + 3, hs = new Float32Array(P * P);
-  let hmax = -Infinity;
-  for (let j = 0; j < P; j++) for (let i = 0; i < P; i++) hmax = Math.max(hmax, hs[j * P + i] = heightAt(ox + (i - 1) * step, oz + (j - 1) * step));
-  if (hmax < -4) return null;
-  const skirt = 1 + 2 * step, nv = V * V + 4 * V;
-  const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), wa = new Float32Array(nv * 4), wb = new Float32Array(nv * 4), au = new Float32Array(nv * 2);
-  for (let j = 0; j < V; j++) for (let i = 0; i < V; i++) {
-    const k = j * V + i, hp = (j + 1) * P + i + 1, h = hs[hp];
-    // normals and curvature use fixed baselines (1 m, 3 m), so a vertex shared by two lods gets identical data
-    const wx = ox + i * step, wz = oz + j * step;
-    const nx = step === 1 ? hs[hp - 1] - hs[hp + 1] : heightAt(wx - 1, wz) - heightAt(wx + 1, wz);
-    const nz = step === 1 ? hs[hp - P] - hs[hp + P] : heightAt(wx, wz - 1) - heightAt(wx, wz + 1), ny = 2, l = Math.hypot(nx, ny, nz);
-    pos.set([i * step, h, j * step], k * 3);
-    nor.set([nx / l, ny / l, nz / l], k * 3);
-    const lap = (heightAt(wx - 3, wz) + heightAt(wx + 3, wz) + heightAt(wx, wz - 3) + heightAt(wx, wz + 3)) / 4 - h;
-    weigh(wx, wz, h, Math.max(-1, Math.min(1, lap / 1.5)), wa, wb, au, k * 4);
-  }
-  const idx = [];
-  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
-    const a = j * V + i, b = a + V, c = a + 1, d = b + 1;
-    idx.push(a, b, c, c, b, d);
-  }
-  // skirt edges ordered so each strip faces outward: north +x, east +z, south -x, west -z
-  const edges = [
-    Array.from({ length: V }, (_, i) => i),
-    Array.from({ length: V }, (_, j) => j * V + n),
-    Array.from({ length: V }, (_, i) => n * V + n - i),
-    Array.from({ length: V }, (_, j) => (n - j) * V),
-  ];
-  let s = V * V;
-  for (const e of edges) {
-    for (let m = 0; m < V; m++, s++) {
-      const t = e[m];
-      pos.set([pos[t * 3], pos[t * 3 + 1] - skirt, pos[t * 3 + 2]], s * 3);
-      nor.set(nor.subarray(t * 3, t * 3 + 3), s * 3);
-      wa.set(wa.subarray(t * 4, t * 4 + 4), s * 4);
-      wb.set(wb.subarray(t * 4, t * 4 + 4), s * 4);
-      au.set(au.subarray(t * 2, t * 2 + 2), s * 2);
-      if (m < V - 1) idx.push(e[m], e[m + 1], s, e[m + 1], s + 1, s);
-    }
-  }
+const toMesh = (d, cx, cz, material) => {
   const g = new BufferGeometry();
-  g.setAttribute('position', new BufferAttribute(pos, 3));
-  g.setAttribute('normal', new BufferAttribute(nor, 3));
-  g.setAttribute('wa', new BufferAttribute(wa, 4));
-  g.setAttribute('wb', new BufferAttribute(wb, 4));
-  g.setAttribute('aux', new BufferAttribute(au, 2));
-  g.setIndex(idx);
+  g.setAttribute('position', new BufferAttribute(d.pos, 3));
+  g.setAttribute('normal', new BufferAttribute(d.nor, 3));
+  g.setAttribute('wa', new BufferAttribute(d.wa, 4));
+  g.setAttribute('wb', new BufferAttribute(d.wb, 4));
+  g.setAttribute('aux', new BufferAttribute(d.au, 2));
+  g.setIndex(new BufferAttribute(d.idx, 1));
   g.computeBoundingSphere();
   const mesh = new Mesh(g, material);
-  mesh.position.set(ox, 0, oz);
+  mesh.position.set(cx * CHUNK, 0, cz * CHUNK);
   return mesh;
+};
+// Sync build (tests, and the fallback when workers are unavailable).
+export function buildChunkMesh(cx, cz, lod, material) {
+  const d = buildChunkData(cx, cz, lod);
+  return d && toMesh(d, cx, cz, material);
 }
 
 // One 128 px RGBA random tile (4 independent channels) is the only texture: every pattern below is
@@ -128,10 +47,11 @@ void main(){
   float eN = (mid.r - .5) * .3 + (fine.g - .5) * .05; // wobble for hand-painted borders
   // weights: grass implicit; slope rock per pixel; ragged snow line with streaks in gullies
   float steep = smoothstep(.9, .72, N.y + (mid.b - .5) * .1) * (1. - vB.x);
-  float rock = max(vA.y, steep), sand = vA.z, ember = vB.x, path = vB.y, forest = vB.z, blk = vB.w;
-  float snow = vA.w + eN * 1.4 + max(vAux.x, 0.) * .4 * smoothstep(30., 60., h) - steep * .35;
+  float rock = smoothstep(.34, .5, max(vA.y, steep) + (mid.r - .5) * .5 + (fine.r - .5) * .16), sand = vA.z, ember = vB.x, path = vB.y, forest = vB.z, blk = vB.w;
+  float snow = vA.w + (mid.r - .5) * 1.1 + (big.g - .5) * .7 + max(vAux.x, 0.) * .75 * smoothstep(30., 60., h) - steep * .35;
   snow = max(snow, 0.) * step(.02, vA.w + max(vAux.x, 0.) * smoothstep(30., 60., h));
   rock *= 1. - smoothstep(.3, .6, snow);
+  forest *= 1. - rock; path *= 1. - rock; // no forest floor veil over rock
   float gr = max(0., 1. - max(max(max(rock, sand), max(snow, ember)), max(max(path, forest), blk))) * (1. - smoothstep(35., 60., h)); // no grass tufts on the high mountain
   vec4 w1 = pow(max(vec4(gr, rock, sand, snow) + vec4(0., eN, eN, 0.), 0.), vec4(12.));
   vec4 w2 = pow(max(vec4(ember, path, forest, blk) + eN, 0.), vec4(12.));
@@ -170,17 +90,30 @@ void main(){
     bk = mix(bk, S(vec3(.5,.45,.6)), smoothstep(.9,.92,T(p, 8.).a) * det);
     col += w1.z * sd + w2.w * bk;
   }
-  if (w1.y + w2.x > .01) { // rock + ember rock: triplanar cracks, chiselled facets, height strata
+  float rockW = w1.y + w2.x;
+  if (rockW > .01) { // rock: warped strata of varied tone, chiselled cracks, crevices, light mossy ledge tops, scree, ink-dark ridges
     vec3 tw = pow(abs(N), vec3(5.)); tw /= tw.x + tw.y + tw.z;
     vec4 a = T(vec2(vW.z, h), .3), b = T(vec2(vW.x, h), .3), c = T(vW.xz, .3);
-    float crk = a.r * tw.x + b.r * tw.z + c.r * tw.y, fac = a.g * tw.x + b.g * tw.z + c.g * tw.y;
+    float crk = a.r * tw.x + b.r * tw.z + c.r * tw.y, fac = a.g * tw.x + b.g * tw.z + c.g * tw.y, wv = a.b * tw.x + b.b * tw.z + c.b * tw.y;
     float line = 1. - smoothstep(0., .035, abs(crk - .5));
     float tone = floor(fac * 4.) / 4.;
-    float band = sin(h * 1.3 + big.r * 12. + mid.g * 3.) + .5 * sin(h * 3.1 + big.g * 7.);
+    float sy = h * .4 + (big.r - .5) * 3.2 + (wv - .5) * 2.4 + (mid.g - .5) * .9;       // strata coordinate, warped so bands wander and pinch
+    sy += .4 * sin(sy * 1.9 + wv * 5.);
+    float bi = floor(sy), bf = fract(sy);
+    float bh = fract(sin(bi * 12.9898) * 43758.5453), bh2 = fract(sin(bi * 78.233 + 4.1) * 24634.6345);
+    float seam = 1. - smoothstep(0., .09, bf);
     float gul = clamp(vAux.x, 0., 1.), rid = clamp(-vAux.x, 0., 1.);
-    vec3 rc = mix(S(vec3(.58,.50,.52)), S(vec3(.70,.59,.49)), smoothstep(-.7,.7,band));
-    rc *= (.7 + .5 * tone) * (1. - .4 * gul) * (1. + .25 * rid) * (1. - .5 * line * mix(.4, 1., det));
-    vec3 ec = mix(S(vec3(.26,.17,.20)), S(vec3(.40,.24,.24)), smoothstep(-.2,.2,band));
+    float flat_ = smoothstep(.8, .92, N.y), scree = smoothstep(.6, .78, N.y) * (1. - flat_);
+    vec3 rc = mix(S(vec3(.50,.46,.44)), S(vec3(.68,.60,.49)), bh);                       // warm basalt to sandstone
+    rc = mix(rc, S(vec3(.42,.45,.49)), step(.8, bh2) * .7);
+    rc = mix(rc, S(vec3(.66,.43,.30)), step(.86, fract(bh * 7.3 + bh2 * 3.1)) * .65);   // rusty iron band                              // the odd cold slate band
+    rc *= (.86 + .26 * bh2) * (.8 + .35 * tone);
+    rc *= 1. - .45 * seam * (1. - flat_) - .35 * line * mix(.4, 1., det) - .4 * gul;     // seams, chiselled cracks, crevices
+    rc *= 1. - .5 * smoothstep(.45, 1., rid) * (1. - flat_);                             // ink-dark convex ridges
+    rc = mix(rc, rc * (.7 + .6 * T(p, 6.).g), scree * det);                              // pebbly scree below the cliffs
+    vec3 moss = mix(S(vec3(.34,.60,.24)), S(vec3(.50,.74,.28)), mid.b);
+    rc = mix(rc * 1.12, moss, flat_ * smoothstep(.4, .55, mid.b + big.b * .3) * (1. - smoothstep(40., 70., h)) * .9);
+    vec3 ec = mix(S(vec3(.26,.17,.20)), S(vec3(.40,.24,.24)), smoothstep(.3,.7,bh));
     ec *= (.8 + .35 * tone) * (1. - .4 * line);
     col += w1.y * rc + w2.x * ec;
     emis += w2.x * line * smoothstep(44., 14., length(p - vec2(98., 8.))) * S(vec3(1., .4, .1)) * 1.4; // glowing veins
@@ -195,11 +128,19 @@ void main(){
     sn = mix(sn, sn * 1.25 + .05, smoothstep(.9, .93, T(p, 7.).a) * det);                                           // sparkle
     col = mix(col, sn, cov);
   }
+  float rel = h - vA.x;
+  if (rel < .8) {
+    float flatK = smoothstep(.45, .75, N.y), under = smoothstep(.05, -.15, rel) * flatK, wet = smoothstep(.8, .1, rel) * (1. - under) * flatK; // steep faces stay rock (the falls are drawn by the water)
+    vec3 bed = mix(S(vec3(.84,.77,.58)), S(vec3(.26,.48,.52)), smoothstep(-.2, -2.6, rel)); // sunlit sand to deep teal
+    bed = mix(bed, bed * 1.3, smoothstep(.74, .78, T(p, 3.).b) * (1. - smoothstep(-.2, -1.2, rel)));   // pale pebbles
+    col = mix(col * mix(1., .58, wet), bed, under);
+  }
   // cel lighting: 4 steps, cool tinted shade, warm sun (colour choices are ACES-aware)
   float nd = dot(N, uSunDir);
   float band4 = (smoothstep(-.14,-.1,nd) + smoothstep(.1,.14,nd) + smoothstep(.4,.44,nd)) / 3.;
   vec3 amb = mix(uGround, uAmbient, N.y * .5 + .5);
   col *= amb * .7 + uSunColor * (.8 * band4);
+  col *= mix(vec3(1.), vec3(.88, .93, 1.08), (1. - band4) * clamp(rockW + w1.w, 0., 1.)); // cold blue shadow on rock and snow
   // lava in the crater, emissive
   float d = length(p - vec2(98., 8.));
   vec3 lv = mix(S(vec3(1.,.28,.05)), S(vec3(1.,.8,.25)), smoothstep(.4,.7,T(p, .6).g)) * 1.6;
@@ -239,30 +180,74 @@ export function createTerrainMaterial() {
   return m;
 }
 
-// Streams chunks around the camera: at most 2 builds per frame, nearest first.
+// Streams chunks around the camera. Geometry is built in 2 workers (falls back to the main thread if they cannot start);
+// the main thread only wraps the arrays and uploads, at most 2 meshes per frame, nearest first.
+// ready = every wanted chunk is built at its lod; progress = built / wanted; meshMs / meshes = main-thread cost per chunk so far
+// (mesh wrap + upload with workers, the whole build without); mainMs = all of update().
 export class ChunkManager {
-  constructor(scene, material, radius = VIEW_RADIUS) {
-    Object.assign(this, { scene, material, radius, map: new Map(), built: 0, wanted: 0 });
+  constructor(scene, material, radius = VIEW_RADIUS, workers = 2) {
+    Object.assign(this, { scene, material, radius, map: new Map(), built: 0, wanted: 0, ready: false, progress: 0, mainMs: 0, meshMs: 0, meshes: 0, inbox: [], pool: [], seq: 0 });
+    try {
+      if (workers > 0 && typeof Worker !== 'undefined') for (let i = 0; i < workers; i++) {
+        const w = new Worker(new URL('./terrain-worker.js', import.meta.url), { type: 'module' });
+        w.busy = 0;
+        w.onmessage = (e) => { w.busy--; this.inbox.push(e.data); };
+        w.onerror = () => this.#fallback();
+        this.pool.push(w);
+      }
+    } catch { this.#fallback(); }
+  }
+  #fallback() { // workers unusable: drop them; pending requests are re-issued on the main thread
+    for (const w of this.pool) w.terminate();
+    this.pool = [];
+    for (const e of this.map.values()) e.pend = null;
   }
   update(cam) {
+    const t0 = performance.now();
     const want = chunksAround(cam.x, cam.z, this.radius), keep = new Set(chunksAround(cam.x, cam.z, this.radius + 24).map((c) => chunkKey(c.cx, c.cz)));
     for (const [k, e] of this.map) if (!keep.has(k)) { this.#drop(e); this.map.delete(k); }
+    // finished worker jobs: at most 2 uploads per frame
+    for (let n = 0; n < 2 && this.inbox.length; n++) {
+      const { id, d } = this.inbox.shift(), e = this.map.get(id.k);
+      if (!e || e.pend !== id.n) continue; // dropped or superseded while in flight
+      const m0 = performance.now();
+      this.#put(e, id.cx, id.cz, id.lod, d && toMesh(d, id.cx, id.cz, this.material));
+      this.meshMs += performance.now() - m0;
+    }
     let budget = 2, built = 0;
     for (const { cx, cz } of want) {
-      const k = chunkKey(cx, cz), e = this.map.get(k), d = Math.hypot((cx + 0.5) * CHUNK - cam.x, (cz + 0.5) * CHUNK - cam.z);
+      const k = chunkKey(cx, cz);
+      let e = this.map.get(k);
+      const d = Math.hypot((cx + 0.5) * CHUNK - cam.x, (cz + 0.5) * CHUNK - cam.z), lod = lodFor(d);
       // keep the current lod while within 8 m of a band edge (no flip-flopping)
-      if (e && lodFor(d - 8) <= e.lod && e.lod <= lodFor(d + 8)) { built++; continue; }
-      if (budget === 0) continue;
-      budget--;
-      const lod = lodFor(d), mesh = buildChunkMesh(cx, cz, lod, this.material);
-      if (e) this.#drop(e);
-      if (mesh) this.scene.add(mesh);
-      this.map.set(k, { mesh, lod });
-      built++;
+      if (e && e.lod !== undefined && lodFor(d - 8) <= e.lod && e.lod <= lodFor(d + 8)) { built++; continue; }
+      if (!e) this.map.set(k, e = { mesh: null, lod: undefined, pend: null });
+      if (this.pool.length) {
+        if (e.pend && e.lodWant === lod) continue;
+        const w = this.pool.reduce((p, q) => (q.busy < p.busy ? q : p));
+        if (w.busy >= 3) continue;
+        e.pend = ++this.seq; e.lodWant = lod; w.busy++;
+        w.postMessage({ id: { k, n: e.pend, cx, cz, lod }, cx, cz, lod });
+      } else if (budget > 0) {
+        budget--;
+        const m0 = performance.now();
+        this.#put(e, cx, cz, lod, buildChunkMesh(cx, cz, lod, this.material));
+        this.meshMs += performance.now() - m0;
+        built++;
+      }
     }
     this.built = built;
     this.wanted = want.length;
+    this.progress = built / Math.max(1, want.length);
+    this.ready = built === want.length;
+    this.mainMs += performance.now() - t0;
   }
-  #drop(e) { if (e.mesh) { this.scene.remove(e.mesh); e.mesh.geometry.dispose(); } }
-  dispose() { for (const e of this.map.values()) this.#drop(e); this.map.clear(); }
+  #put(e, cx, cz, lod, mesh) {
+    if (e.mesh) this.#drop(e);
+    if (mesh) this.scene.add(mesh);
+    Object.assign(e, { mesh, lod, pend: null });
+    this.meshes++;
+  }
+  #drop(e) { if (e.mesh) { this.scene.remove(e.mesh); e.mesh.geometry.dispose(); e.mesh = null; } }
+  dispose() { for (const e of this.map.values()) this.#drop(e); this.map.clear(); for (const w of this.pool) w.terminate(); this.pool = []; }
 }
