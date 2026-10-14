@@ -130,7 +130,7 @@ void main(){
   }
   float rel = h - vA.x;
   if (rel < .8) {
-    float under = smoothstep(.05, -.15, rel), wet = smoothstep(.8, .1, rel) * (1. - under);
+    float flatK = smoothstep(.45, .75, N.y), under = smoothstep(.05, -.15, rel) * flatK, wet = smoothstep(.8, .1, rel) * (1. - under) * flatK; // steep faces stay rock (the falls are drawn by the water)
     vec3 bed = mix(S(vec3(.84,.77,.58)), S(vec3(.26,.48,.52)), smoothstep(-.2, -2.6, rel)); // sunlit sand to deep teal
     bed = mix(bed, bed * 1.3, smoothstep(.74, .78, T(p, 3.).b) * (1. - smoothstep(-.2, -1.2, rel)));   // pale pebbles
     col = mix(col * mix(1., .58, wet), bed, under);
@@ -140,7 +140,7 @@ void main(){
   float band4 = (smoothstep(-.14,-.1,nd) + smoothstep(.1,.14,nd) + smoothstep(.4,.44,nd)) / 3.;
   vec3 amb = mix(uGround, uAmbient, N.y * .5 + .5);
   col *= amb * .7 + uSunColor * (.8 * band4);
-  col *= mix(vec3(1.), vec3(.8, .88, 1.12), (1. - band4) * clamp(rockW + w1.w, 0., 1.)); // cold blue shadow on rock and snow
+  col *= mix(vec3(1.), vec3(.88, .93, 1.08), (1. - band4) * clamp(rockW + w1.w, 0., 1.)); // cold blue shadow on rock and snow
   // lava in the crater, emissive
   float d = length(p - vec2(98., 8.));
   vec3 lv = mix(S(vec3(1.,.28,.05)), S(vec3(1.,.8,.25)), smoothstep(.4,.7,T(p, .6).g)) * 1.6;

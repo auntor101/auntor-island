@@ -79,6 +79,8 @@ startLoop((dt, now) => {
   sky.mesh.position.copy(cp);
   sea.mesh.position.set(Math.round(cp.x / 8) * 8, 0, Math.round(cp.z / 8) * 8);
   sea.update(now / 1000, pal);
+  const alt = Math.max(0, cp.y - heightAt(cp.x, cp.z)); // same fog lift as main.js when high up
+  scene.fog.near = 80 + 2 * alt; scene.fog.far = 260 + 3 * alt;
   gl.render(scene, camera, dt * 1000);
   if (++frames % 10 === 0) {
     const s = gl.stats();
