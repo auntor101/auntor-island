@@ -10,8 +10,8 @@ export const SEASONS = ['summer', 'autumn', 'spring', 'grove'];
 const RAW = [
   { id: 'tree', tier: 0, solid: 1, r: 2.2, cell: 5.6, jit: 0.5, scale: [0.85, 1.35], slope: 0.9, water: 2, hMax: 34, wood: 1, variants: 3,
     zones: { forest: 1, meadow: 0.1, grove: 0.85, village: 0.05, roost: 0.18, cove: 0.14, mountain: 0.04, lake: 0.25, river: 0.25 } },
-  { id: 'pine', tier: 0, solid: 1, r: 1.8, cell: 6, jit: 0.5, scale: [0.8, 1.3], slope: 1.3, water: 2, variants: 2, alt: [28, 75],
-    zones: { mountain: 0.85, forest: 0.1, roost: 0.35 } },
+  { id: 'pine', tier: 0, solid: 1, r: 1.8, cell: 6, jit: 0.5, scale: [0.8, 1.3], slope: 1.7, water: 2, variants: 2, alt: [28, 75],
+    zones: { mountain: 0.9, forest: 0.12, roost: 0.4, meadow: 0.03 } },
   { id: 'dead', tier: 0, solid: 1, r: 1.4, cell: 8, jit: 0.6, scale: [0.7, 1.1], slope: 1.6, water: 2, variants: 1,
     zones: { volcano: 0.7, mountain: 0.03 } },
   { id: 'bush', tier: 1, solid: 1, r: 1.2, cell: 5, jit: 0.6, scale: [0.9, 1.7], slope: 0.9, water: 1, avoid: ['tree', 'pine'], variants: 1,
