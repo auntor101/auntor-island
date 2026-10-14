@@ -26,7 +26,7 @@ const GROVE = { x: -72, z: -30 };
 const smooth = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 
 // Per-vertex zone WEIGHTS (the fragment shader does the actual painting, so borders stay crisp).
-// wa = fresh water level (or h + 6 when none near), rock, sand, snow; wb = ember, path, forest, black sand; au = curvature (+ = gully), grove.
+// wa = fresh water level (or h - 6 when none near), rock, sand, snow; wb = ember, path, forest, black sand; au = curvature (+ = gully), grove.
 // Grass is implicit: 1 - the largest other weight.
 function weigh(x, z, h, curv, wa, wb, au, k) {
   const zone = zoneAt(x, z), r = Math.hypot(x, z), lo = Math.sin(x * 0.09 + 2 * Math.sin(z * 0.05 + 1)) * Math.sin(z * 0.1 + 2 * Math.sin(x * 0.06));
@@ -55,7 +55,7 @@ function weigh(x, z, h, curv, wa, wb, au, k) {
     const q = (x - s.x) ** 2 + (z - s.z) ** 2;
     if (q < 100) { rock = Math.max(rock, 2 * smooth(100, 36, q)); break; }
   }
-  const fl = freshLevelAt(x, z); wa[k] = fl === null ? h + 6 : fl; wa[k + 1] = rock; wa[k + 2] = sand; wa[k + 3] = snow;
+  const fl = freshLevelAt(x, z); wa[k] = fl === null ? h - 6 : fl; wa[k + 1] = rock; wa[k + 2] = sand; wa[k + 3] = snow;
   wb[k] = ember; wb[k + 1] = path; wb[k + 2] = forest; wb[k + 3] = black;
   au[k / 2] = curv; au[k / 2 + 1] = grove;
 }

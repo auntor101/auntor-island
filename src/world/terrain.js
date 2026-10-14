@@ -47,10 +47,11 @@ void main(){
   float eN = (mid.r - .5) * .3 + (fine.g - .5) * .05; // wobble for hand-painted borders
   // weights: grass implicit; slope rock per pixel; ragged snow line with streaks in gullies
   float steep = smoothstep(.9, .72, N.y + (mid.b - .5) * .1) * (1. - vB.x);
-  float rock = max(vA.y, steep), sand = vA.z, ember = vB.x, path = vB.y, forest = vB.z, blk = vB.w;
-  float snow = vA.w + eN * 1.4 + max(vAux.x, 0.) * .4 * smoothstep(30., 60., h) - steep * .35;
+  float rock = smoothstep(.34, .5, max(vA.y, steep) + (mid.r - .5) * .5 + (fine.r - .5) * .16), sand = vA.z, ember = vB.x, path = vB.y, forest = vB.z, blk = vB.w;
+  float snow = vA.w + (mid.r - .5) * 1.1 + (big.g - .5) * .7 + max(vAux.x, 0.) * .75 * smoothstep(30., 60., h) - steep * .35;
   snow = max(snow, 0.) * step(.02, vA.w + max(vAux.x, 0.) * smoothstep(30., 60., h));
   rock *= 1. - smoothstep(.3, .6, snow);
+  forest *= 1. - rock; path *= 1. - rock; // no forest floor veil over rock
   float gr = max(0., 1. - max(max(max(rock, sand), max(snow, ember)), max(max(path, forest), blk))) * (1. - smoothstep(35., 60., h)); // no grass tufts on the high mountain
   vec4 w1 = pow(max(vec4(gr, rock, sand, snow) + vec4(0., eN, eN, 0.), 0.), vec4(12.));
   vec4 w2 = pow(max(vec4(ember, path, forest, blk) + eN, 0.), vec4(12.));
@@ -89,17 +90,30 @@ void main(){
     bk = mix(bk, S(vec3(.5,.45,.6)), smoothstep(.9,.92,T(p, 8.).a) * det);
     col += w1.z * sd + w2.w * bk;
   }
-  if (w1.y + w2.x > .01) { // rock + ember rock: triplanar cracks, chiselled facets, height strata
+  float rockW = w1.y + w2.x;
+  if (rockW > .01) { // rock: warped strata of varied tone, chiselled cracks, crevices, light mossy ledge tops, scree, ink-dark ridges
     vec3 tw = pow(abs(N), vec3(5.)); tw /= tw.x + tw.y + tw.z;
     vec4 a = T(vec2(vW.z, h), .3), b = T(vec2(vW.x, h), .3), c = T(vW.xz, .3);
-    float crk = a.r * tw.x + b.r * tw.z + c.r * tw.y, fac = a.g * tw.x + b.g * tw.z + c.g * tw.y;
+    float crk = a.r * tw.x + b.r * tw.z + c.r * tw.y, fac = a.g * tw.x + b.g * tw.z + c.g * tw.y, wv = a.b * tw.x + b.b * tw.z + c.b * tw.y;
     float line = 1. - smoothstep(0., .035, abs(crk - .5));
     float tone = floor(fac * 4.) / 4.;
-    float band = sin(h * 1.3 + big.r * 12. + mid.g * 3.) + .5 * sin(h * 3.1 + big.g * 7.);
+    float sy = h * .4 + (big.r - .5) * 3.2 + (wv - .5) * 2.4 + (mid.g - .5) * .9;       // strata coordinate, warped so bands wander and pinch
+    sy += .4 * sin(sy * 1.9 + wv * 5.);
+    float bi = floor(sy), bf = fract(sy);
+    float bh = fract(sin(bi * 12.9898) * 43758.5453), bh2 = fract(sin(bi * 78.233 + 4.1) * 24634.6345);
+    float seam = 1. - smoothstep(0., .09, bf);
     float gul = clamp(vAux.x, 0., 1.), rid = clamp(-vAux.x, 0., 1.);
-    vec3 rc = mix(S(vec3(.58,.50,.52)), S(vec3(.70,.59,.49)), smoothstep(-.7,.7,band));
-    rc *= (.7 + .5 * tone) * (1. - .4 * gul) * (1. + .25 * rid) * (1. - .5 * line * mix(.4, 1., det));
-    vec3 ec = mix(S(vec3(.26,.17,.20)), S(vec3(.40,.24,.24)), smoothstep(-.2,.2,band));
+    float flat_ = smoothstep(.8, .92, N.y), scree = smoothstep(.6, .78, N.y) * (1. - flat_);
+    vec3 rc = mix(S(vec3(.50,.46,.44)), S(vec3(.68,.60,.49)), bh);                       // warm basalt to sandstone
+    rc = mix(rc, S(vec3(.42,.45,.49)), step(.8, bh2) * .7);
+    rc = mix(rc, S(vec3(.66,.43,.30)), step(.86, fract(bh * 7.3 + bh2 * 3.1)) * .65);   // rusty iron band                              // the odd cold slate band
+    rc *= (.86 + .26 * bh2) * (.8 + .35 * tone);
+    rc *= 1. - .45 * seam * (1. - flat_) - .35 * line * mix(.4, 1., det) - .4 * gul;     // seams, chiselled cracks, crevices
+    rc *= 1. - .5 * smoothstep(.45, 1., rid) * (1. - flat_);                             // ink-dark convex ridges
+    rc = mix(rc, rc * (.7 + .6 * T(p, 6.).g), scree * det);                              // pebbly scree below the cliffs
+    vec3 moss = mix(S(vec3(.34,.60,.24)), S(vec3(.50,.74,.28)), mid.b);
+    rc = mix(rc * 1.12, moss, flat_ * smoothstep(.4, .55, mid.b + big.b * .3) * (1. - smoothstep(40., 70., h)) * .9);
+    vec3 ec = mix(S(vec3(.26,.17,.20)), S(vec3(.40,.24,.24)), smoothstep(.3,.7,bh));
     ec *= (.8 + .35 * tone) * (1. - .4 * line);
     col += w1.y * rc + w2.x * ec;
     emis += w2.x * line * smoothstep(44., 14., length(p - vec2(98., 8.))) * S(vec3(1., .4, .1)) * 1.4; // glowing veins
@@ -114,11 +128,19 @@ void main(){
     sn = mix(sn, sn * 1.25 + .05, smoothstep(.9, .93, T(p, 7.).a) * det);                                           // sparkle
     col = mix(col, sn, cov);
   }
+  float rel = h - vA.x;
+  if (rel < .8) {
+    float under = smoothstep(.05, -.15, rel), wet = smoothstep(.8, .1, rel) * (1. - under);
+    vec3 bed = mix(S(vec3(.84,.77,.58)), S(vec3(.26,.48,.52)), smoothstep(-.2, -2.6, rel)); // sunlit sand to deep teal
+    bed = mix(bed, bed * 1.3, smoothstep(.74, .78, T(p, 3.).b) * (1. - smoothstep(-.2, -1.2, rel)));   // pale pebbles
+    col = mix(col * mix(1., .58, wet), bed, under);
+  }
   // cel lighting: 4 steps, cool tinted shade, warm sun (colour choices are ACES-aware)
   float nd = dot(N, uSunDir);
   float band4 = (smoothstep(-.14,-.1,nd) + smoothstep(.1,.14,nd) + smoothstep(.4,.44,nd)) / 3.;
   vec3 amb = mix(uGround, uAmbient, N.y * .5 + .5);
   col *= amb * .7 + uSunColor * (.8 * band4);
+  col *= mix(vec3(1.), vec3(.8, .88, 1.12), (1. - band4) * clamp(rockW + w1.w, 0., 1.)); // cold blue shadow on rock and snow
   // lava in the crater, emissive
   float d = length(p - vec2(98., 8.));
   vec3 lv = mix(S(vec3(1.,.28,.05)), S(vec3(1.,.8,.25)), smoothstep(.4,.7,T(p, .6).g)) * 1.6;
@@ -160,10 +182,11 @@ export function createTerrainMaterial() {
 
 // Streams chunks around the camera. Geometry is built in 2 workers (falls back to the main thread if they cannot start);
 // the main thread only wraps the arrays and uploads, at most 2 meshes per frame, nearest first.
-// ready = every wanted chunk is built at its lod; progress = built / wanted; mainMs / meshes = main-thread cost so far.
+// ready = every wanted chunk is built at its lod; progress = built / wanted; meshMs / meshes = main-thread cost per chunk so far
+// (mesh wrap + upload with workers, the whole build without); mainMs = all of update().
 export class ChunkManager {
   constructor(scene, material, radius = VIEW_RADIUS, workers = 2) {
-    Object.assign(this, { scene, material, radius, map: new Map(), built: 0, wanted: 0, ready: false, progress: 0, mainMs: 0, meshes: 0, inbox: [], pool: [], seq: 0 });
+    Object.assign(this, { scene, material, radius, map: new Map(), built: 0, wanted: 0, ready: false, progress: 0, mainMs: 0, meshMs: 0, meshes: 0, inbox: [], pool: [], seq: 0 });
     try {
       if (workers > 0 && typeof Worker !== 'undefined') for (let i = 0; i < workers; i++) {
         const w = new Worker(new URL('./terrain-worker.js', import.meta.url), { type: 'module' });
@@ -187,7 +210,9 @@ export class ChunkManager {
     for (let n = 0; n < 2 && this.inbox.length; n++) {
       const { id, d } = this.inbox.shift(), e = this.map.get(id.k);
       if (!e || e.pend !== id.n) continue; // dropped or superseded while in flight
+      const m0 = performance.now();
       this.#put(e, id.cx, id.cz, id.lod, d && toMesh(d, id.cx, id.cz, this.material));
+      this.meshMs += performance.now() - m0;
     }
     let budget = 2, built = 0;
     for (const { cx, cz } of want) {
@@ -205,7 +230,9 @@ export class ChunkManager {
         w.postMessage({ id: { k, n: e.pend, cx, cz, lod }, cx, cz, lod });
       } else if (budget > 0) {
         budget--;
+        const m0 = performance.now();
         this.#put(e, cx, cz, lod, buildChunkMesh(cx, cz, lod, this.material));
+        this.meshMs += performance.now() - m0;
         built++;
       }
     }
