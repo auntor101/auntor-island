@@ -120,3 +120,10 @@ The script is divided by `/* ===== ... ===== */` banners, in this order:
 - Live site: GitHub Pages from the `gh-pages` branch of github.com/auntor101/auntor-island, served at https://auntor101.github.io/auntor-island/. Static hosts without header support cannot set real security headers; the CSP meta tag covers script, style, font, image and connect sources but not frame-ancestors.
 - To republish: `npm test && npm run build`, then commit the contents of `dist/` to the `gh-pages` branch (a git worktree in a temp folder keeps main clean) and push. Netlify/Cloudflare work too with publish dir `dist` and build command `node tools/build-site.js`.
 - Commit author identity for this repo is the GitHub no-reply address; never commit with a personal email address.
+
+## New app in web/ (the dragon-isle rebuild)
+The rebuild lives in `web/` (Vite, three.js 0.186, three-vrm, postprocessing; plain JavaScript). The old game at the repo root is still what the root deploy publishes. See `web/README.md` for running it, the controls, URL test tools and the real-phone checklist. Design: `docs/superpowers/specs/2026-10-14-dragon-isle-rebuild-design.md`; plan: `docs/superpowers/plans/2026-10-14-dragon-isle-foundation.md`.
+- Commands (in `web/`): `npm test`, `npm run dev`, `npm run build`, `npm run build:preview` (relative paths for a sub-folder host).
+- Preview hosting: the `gh-pages` branch carries the old site at its root and the new app in `/dragon/` (https://auntor101.github.io/auntor-island/dragon/). Republish by running `npm run build:preview` in `web/` and copying `web/dist/` into `dragon/` on `gh-pages` from a temporary clone; never touch the root files there.
+- Screenshot tool: `web/tools/shoot.mjs` (headless Edge, software GL; fps is meaningless there, draw calls and triangles are meaningful). Agent skills for three.js live in `.claude/skills` (git-ignored).
+- Known gaps: no village or props yet, no companion, cats, dragon, quests, venues, festivals; real-phone performance unverified; see the ledger-style notes in the design doc.

@@ -5,7 +5,8 @@
     "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview --host",
-    "test": "node --test"
+    "test": "node --test",
+    "build:preview": "vite build --base ./"
   },
   "type": "module",
   "dependencies": {
