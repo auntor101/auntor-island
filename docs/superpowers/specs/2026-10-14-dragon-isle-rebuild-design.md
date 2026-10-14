@@ -162,3 +162,52 @@ Each step ends with a screenshot critique at 390 by 844 and 844 by 390, a perfor
 The name (Auntor's Island), the banter, the three-stars finale with the secret word, the male and female choice with a name, the cats, the slapstick death text, and the fictional-only rule for names and politics.
 
 Sources for the addendum: [KayKit Adventurers](https://kaylousberg.itch.io/kaykit-adventurers) · [Quaternius Universal Animation Library](https://quaternius.com/packs/universalanimationlibrary.html) · [Quaternius Universal Base Characters](https://quaternius.com/packs/universalbasecharacters.html) · [Quaternius Medieval Village MegaKit](https://quaternius.com/packs/medievalvillagemegakit.html) · [three.js GodRaysShader docs](https://threejs.org/docs/pages/module-GodRaysShader.html)
+
+
+---
+
+# Addendum 2 (owner direction, later the same day): wizards and elves, 20x island, anime quality, modern phones only
+
+## What changed
+1. **Wizards and elves join the world.** A **Wizard Tower** (an academy of magic on a headland) and an **Elven Grove** (tall pale trees, glowing lanterns, a treehouse village), with NPCs of each race, plus elf and wizard looks for the player (pointed ears, robes, hats, staffs). Light magic is part of play: light lanterns, float objects, a dragon-fire trick learned from the wizards. Names and banter of the existing cast stay.
+2. **The island is 20 times the original area**: about 56,000 square units of land, a land radius of roughly 135 units (about 270 across). This replaces the earlier 10x figure.
+3. **Quality over reach.** Every structure and figure must have proper form, texture and sharp edges in a modern anime or cartoon style. No lumpy primitive shapes. Anything that cannot reach that bar is left out until it can.
+4. **Target devices are mid-range to flagship phones, including iPhone** (roughly iPhone 12 and newer, Snapdragon 7 and 8 class and newer). Low-end phones are no longer a target. **I cannot test on a real phone from here**, so I will measure on desktop with throttling and give you a short real-device checklist; the numbers below are goals until you confirm on your phone.
+5. **Lean code (ponytail).** Smallest working change per step, no frameworks beyond what is needed, plain JavaScript, reuse the working pieces (profile, cats, loaders, tests), tests only where logic can be wrong.
+
+## Revised budgets (goals, to be measured)
+| Thing | Goal |
+|---|---|
+| Frame rate | 60 fps on flagship, at least 45 fps on mid-range, with a frame-time governor that lowers resolution before dropping frames |
+| Draw calls, busiest view | about 300 |
+| Triangles, busiest view | about 600k |
+| First playable load | about 8 MB or less (island, village, one hero character), everything else streamed in the background with a progress bar |
+| Textures | KTX2 or WebP, 1024 px for heroes, 512 px for props, atlases wherever possible |
+| Pixel ratio | up to 2 on flagship, 1.5 on mid-range, set by the governor |
+
+## Look: anime done properly
+- **Characters: VRM with the MToon anime shader (the standard anime-shaded material for VRM) through `three-vrm`** (MIT, 2.2k stars, updated this month). It gives clean cel shading, outlines, facial expressions (blink, smile, anger) and hair and cloth spring physics, which is most of what makes a character feel alive.
+- **I verified a real anime character is available now:** the `VRM1_Constraint_Twist_Sample.vrm` in the three-vrm repository (made by pixiv; its own licence data says everyone may use it, modification and redistribution are allowed, no credit needed). It is heavy (about 36k triangles, 10.7 MB, 19 textures), so it gets decimated and its textures compressed with `glTF-Transform` and `meshoptimizer` before use. It is one character, so more come from you (VRoid Studio is free: a handsome man, a woman, an elf, a wizard in about 20 minutes each) or from variants I build by attaching robes, hats, ears and staffs to the same body.
+- **Elves and wizards without a modelling tool:** elf ears, long hair pieces, robes, pointed hats, beards and staffs are small meshes parented to the VRM head, spine and hand bones, tinted per character.
+- **World:** Medieval Village MegaKit buildings (CC0, still to be downloaded) restyled with the shared toon ramp, stylised nature kit trees (already in), cliffs and sea stacks from noise-shaped terrain with rock textures, water with shore foam and a painted sky.
+- **Motion:** the Universal Animation Library (CC0) retargeted to VRM bones for walk, run, sit, wave and more; crossfades; head look-at; camera spring.
+
+## Stack decision (replaces the earlier "keep r128 globals" rule)
+Vite 8, three.js 0.186, `@pixiv/three-vrm` 3.5, `postprocessing` 6.39 (bloom, tone mapping, FXAA/SMAA), `@gltf-transform/cli` and `meshoptimizer` for the asset pipeline. Plain JavaScript modules. The existing logic modules (`profile`, `cats`, `assets`, quest and dialogue code) are ported, not rewritten. The deployment already builds a `dist/` folder, so Cloudflare keeps working.
+
+## Build order (updated)
+| # | Step | Gate |
+|---|---|---|
+| 1 | **New foundation**: Vite and current three, chunked 20x terrain, painted sky, water, camera and controls, one VRM hero walking | Screenshot at 390 by 844 plus measured draw calls, triangles and frame time |
+| 2 | **Viking village and buildings** (needs the building pack) | Same |
+| 3 | **People**: VRM cast, elves, wizards, outfits, animation retargeting | Same plus your approval of the character renders |
+| 4 | **Companion, cats and dogs** | Same |
+| 5 | **Dragon riding** | Same |
+| 6 | **Wizard Tower, Elven Grove, quests and the cast with banter** | Same |
+| 7 | **Death system, stables, garage, venues and festivals** | Same |
+| 8 | **Polish, analytics, real-phone test** | Your phone |
+
+## What I need from you
+- Download the free building and animation packs into `assets-src/downloads/` (links in the previous message): **Medieval Village MegaKit**, **Universal Animation Library**, and optionally **Universal Base Characters**.
+- Optionally make one or two VRoid characters (a man, a woman, an elf, a wizard) and drop the `.vrm` files in the same folder. Without them I use the sample character and attachments.
+- A real-device check after step 1 (open the preview link on your phone; I will give you a two-line report to send back).
