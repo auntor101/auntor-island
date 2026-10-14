@@ -36,4 +36,15 @@ const s = makeState(0, 0, lcg(5)); s.mode = 'walk'; s.tx = 9; s.tz = 0; s.timer 
 const before = s.x; stepCat(s, 1, lcg(5), () => true);
 assert.ok(s.x - before > 0.5 && s.x - before < 1.2, 'one second moves about 0.9 units');
 
+// spawn is a no-op without the loaders
+const vm = require('vm'), fs = require('fs'), path = require('path');
+const ctx = { console, window: null };
+ctx.window = ctx; vm.createContext(ctx);
+for (const f of ['js/assets.js', 'js/cats.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, '..', f), 'utf8'), ctx, { filename: f });
+(async () => {
+  assert.strictEqual(await ctx.LI.cats.spawn({ scene: {}, h: () => 0, ok: () => true, count: 3, near: [0, 0] }), 0, 'spawn resolves 0 without loaders');
+  assert.doesNotThrow(() => ctx.LI.cats.update(0.016, { x: 0, y: 0, z: 0 }, { x: 0, z: 0 }), 'update before spawn is a no-op');
+  console.log('cats spawn tests ok');
+})().catch(e => { console.error(e); process.exit(1); });
+
 console.log('cats tests ok');

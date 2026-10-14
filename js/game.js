@@ -780,10 +780,11 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(window.__maxD
   if(mode!=='intro'){updatePlayer(dt,t);updateNPCs(dt,t);}else{P.c.root.position.copy(P.pos);animChar(P.c,dt,t,0);updateNPCs(dt,t);}
   HUB.update(dt,t);if(world===INNER||camera.position.distanceTo(HUB.Gc)<Q.portalNear)INNER.update(dt,t);
   HUB.motes.update(dt,t,camLook);INNER.snow.update(dt,t,world===INNER?camera.position:innerCam.position);
+  if(LI.cats&&world===HUB)LI.cats.update(dt,camera.position,P.pos);
   updatePuffs(dt);updateCamera(dt);updateInteract();updateLabels();render();}
 
 /* ================= boot ================= */
-LI.gfx={GRAD,Q,TOUCH};
+LI.gfx={GRAD,Q,TOUCH,note,rand:Math.random,camera};
 HUB=buildHub();INNER=buildInner();HUB.portalMat.uniforms.tPortal.value=portalRT.texture;
 function store(){try{return window.localStorage;}catch(e){return null;}}
 function applyProfile(p){
@@ -801,6 +802,7 @@ if(window.ResizeObserver)new ResizeObserver(resize).observe(canvas);window.addEv
 refreshQuest();
 requestAnimationFrame(frame);
 if(LI.nature)LI.nature.upgradeHub({scene:HUB.scene,spots:HUB.treeSpots,forest:HUB.forestInfo,h:hubH});
+if(LI.cats)LI.cats.spawn({scene:HUB.scene,h:hubH,ok:(x,z)=>HUB.walk(x,z)&&!HUB.colliders.some(c=>Math.hypot(x-c.x,z-c.z)<c.r+.5),count:TOUCH?6:12,near:[HUB.spawn.x,HUB.spawn.z]});
 const go=$('go');go.disabled=false;$('loadmsg').textContent=TOUCH?'Best with sound on.':'Best with sound on · WASD or arrows to walk';
 go.addEventListener('click',()=>{if(started)return;try{if(LI.beforeStart)LI.beforeStart();}catch(e){console.error(e);}started=true;audioInit();$('start').classList.add('gone');
   yaw=0;pitch=.36;const pEnd=followPos(V3()),lEnd=headPos(V3());mode='cut';

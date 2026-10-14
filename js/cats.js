@@ -45,7 +45,106 @@
     c.x = nx; c.z = nz;
   }
 
-  const api = { BREEDS, makeState, stepCat };
+  // ---- runtime (needs THREE; only runs in the browser) ----
+  const live = [];                     // {state, obj, mixer, idle, walk, breed, met}
+  const FACE = -Math.PI / 2;           // radians added to heading; the model faces +x, the game heading faces +z
+  const BODY_LEN = 0.85;               // world length of a scale-1 cat
+  const NEAR_NOTE = 2.5, ACTIVE_DIST = 30;
+
+  function coat(obj, breed) {
+    const GRAD = root.LI.gfx.GRAD;
+    obj.traverse(o => {
+      if (!o.isMesh) return;
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      const out = mats.map(m => {
+        const n = (m.name || '').toLowerCase();
+        const color = n.includes('white') ? breed.accent : n.includes('pink') ? '#e9a3a8' : breed.body;
+        return new THREE.MeshToonMaterial({ color, gradientMap: GRAD, skinning: !!o.isSkinnedMesh });
+      });
+      o.material = Array.isArray(o.material) ? out : out[0];
+      o.frustumCulled = false;
+    });
+  }
+
+  // The FBX interleaves its 3 materials in ~72 tiny groups (one draw call each); reorder triangles so each material is one group.
+  function regroup(geo) {
+    if (geo.index || geo.groups.length <= 3) return;
+    const old = geo.groups.slice().sort((a, b) => a.start - b.start), mats = [];
+    old.forEach(g => (mats[g.materialIndex] = mats[g.materialIndex] || []).push(g));
+    for (const name of Object.keys(geo.attributes)) {
+      const at = geo.attributes[name], n = at.itemSize, src = at.array, out = new src.constructor(src.length);
+      let w = 0;
+      mats.forEach(list => list && list.forEach(g => { const a = g.start * n, b = (g.start + g.count) * n; out.set(src.subarray(a, b), w); w += b - a; }));
+      geo.setAttribute(name, new THREE.BufferAttribute(out, n, at.normalized));
+    }
+    geo.clearGroups();
+    let start = 0;
+    mats.forEach((list, mi) => { if (!list) return; const count = list.reduce((t, g) => t + g.count, 0); geo.addGroup(start, count, mi); start += count; });
+  }
+
+  async function spawn(o) {
+    const A = root.LI.assets;
+    try {
+      if (!A || !A.fbx || !root.LI.gfx) return 0;
+      const src = await A.fbx('animals', 'Cat');
+      if (!src || !THREE.SkeletonUtils) return 0;
+      const clip = n => src.animations.find(a => a.name.toLowerCase().includes(n));
+      const idle = clip('idle'), walk = clip('walk');
+      if (!idle || !walk) return 0;
+      src.traverse(m => { if (m.isMesh) regroup(m.geometry); });
+      const box = new THREE.Box3().setFromObject(src);
+      const size = box.getSize(new THREE.Vector3());
+      const k = BODY_LEN / Math.max(size.x, size.z, 0.0001);
+      const rand = root.LI.gfx.rand;
+      const group = new THREE.Group();
+      const made = [];
+      for (let i = 0; i < o.count; i++) {
+        const breed = BREEDS[i % BREEDS.length];
+        let x = 0, z = 0, tries = 0;
+        do { const a = rand() * Math.PI * 2, d = 3 + rand() * 12; x = o.near[0] + Math.cos(a) * d; z = o.near[1] + Math.sin(a) * d; tries++; } while (!o.ok(x, z) && tries < 40);
+        if (!o.ok(x, z)) continue;
+        const obj = THREE.SkeletonUtils.clone(src);
+        coat(obj, breed);
+        const holder = new THREE.Group();
+        obj.scale.setScalar(k * breed.scale);
+        holder.add(obj);
+        const mixer = new THREE.AnimationMixer(obj);
+        const aIdle = mixer.clipAction(idle), aWalk = mixer.clipAction(walk);
+        aIdle.play(); aWalk.play(); aWalk.weight = 0;
+        made.push({ state: makeState(x, z, rand), holder, obj, mixer, aIdle, aWalk, breed, met: false });
+        group.add(holder);
+      }
+      if (!made.length) return 0;
+      o.scene.add(group);
+      made.forEach(c => { live.push(c); c.o = o; c.holder.position.set(c.state.x, o.h(c.state.x, c.state.z), c.state.z); });
+      return made.length;
+    } catch (e) {
+      console.warn('cats failed:', e && e.message);
+      return 0;
+    }
+  }
+
+  function update(dt, cam, player) {
+    if (!live.length) return;
+    const g = root.LI.gfx;
+    for (const c of live) {
+      const o = c.o, s = c.state;
+      const near = Math.hypot(c.holder.position.x - cam.x, c.holder.position.z - cam.z) < ACTIVE_DIST;
+      if (near) {
+        stepCat(s, dt, g.rand, o.ok);
+        const target = s.mode === 'walk' ? 1 : 0;
+        c.aWalk.weight += (target - c.aWalk.weight) * Math.min(1, dt * 6);
+        c.aIdle.weight = 1 - c.aWalk.weight;
+        c.mixer.update(dt);
+        c.holder.position.set(s.x, o.h(s.x, s.z), s.z);
+        let d = s.heading + FACE - c.holder.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d));
+        c.holder.rotation.y += d * Math.min(1, dt * 8);
+      }
+      if (!c.met && Math.hypot(s.x - player.x, s.z - player.z) < NEAR_NOTE) { c.met = true; g.note('A ' + c.breed.name + '!'); }
+    }
+  }
+
+  const api = { BREEDS, makeState, stepCat, spawn, update };
   const LI = root.LI = root.LI || {};
   LI.cats = Object.assign(LI.cats || {}, api);
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
