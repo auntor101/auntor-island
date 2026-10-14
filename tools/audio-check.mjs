@@ -38,8 +38,8 @@ try {
   await set({ hours: 12, speed: 0 });
   console.log('update cost ms/call:', (await page.evaluate(() => window.__probe.cost(1000))).toFixed(4));
   const live = [];
-  for (let s = 0; s < 3; s++) { await sleep(20000); live.push(await page.evaluate(() => window.__probe.live())); }
-  console.log('live source nodes at +20/40/60 s:', live.join(', '));
+  for (let s = 0; s < 12; s++) { await sleep(5000); live.push(await page.evaluate(() => window.__probe.live())); }
+  console.log('live source nodes every 5 s for 60 s:', live.join(', '));
   console.log('worst peak dBFS:', worst.toFixed(1), '| console errors:', errors.length ? errors.join(' || ') : 'none');
   if (shot) await page.screenshot({ path: shot, fullPage: true });
 } finally { await browser.close(); }
