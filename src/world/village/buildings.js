@@ -17,7 +17,7 @@ export const onWall = (p, d, wall, u, fn, y = 0) => p.xf(wallMat(d, wall, u, y),
 
 // Shell: foundation, walls (ends with gables), timber frame, roof with overhang, dragon boards, chimney. opts.walls turns walls off.
 export function house(o) {
-  const { len, wid, h, kind = 'shingle', seed = 1, walls = {}, fh = 0.55, drop = 0.5, wallTile = T.planksH, wallCol, edgeCol } = o;
+  const { len, wid, h, kind = 'shingle', seed = 1, walls = {}, fh = 0.55, drop = 0.9, wallTile = T.planksH, wallCol, edgeCol } = o;
   const r = rng(seed), R = ROOFS[kind], p = new P(), pitch = o.pitch ?? (kind === 'shingle' ? 0.78 : 0.68) + (r() - 0.5) * 0.1;
   const wc = wallCol ?? pick(r, WALLS), rc = o.roofCol ?? pick(r, R.cols), acc = o.acc ?? Math.floor(r() * ACC.length), hl = len / 2, hw = wid / 2, rise = hw * pitch;
   const on = (k) => walls[k] !== false, wt = (end) => (end && wallTile === T.planksH ? T.planksV : wallTile), us = wallTile === T.shutter ? 1.6 : 1, f = { col: wc, us, vs: us };
@@ -93,7 +93,7 @@ export function makeHall({ length = 24, width = 11, height = 4.3, seed = 7 } = {
   // glowing louver turret on the ridge
   const ry = d.rf.yr;
   p.xf(mat(0, ry - 0.2, 0), () => {
-    box(p.m, -1.1, 0, -1.1, 1.1, 1.3, { tile: T.planksV, col: 0xf4dcc0, ao: 0.8 });
+    box(p.m, -1.1, 0, -1.1, 1.1, 1.3, 1.1, { tile: T.planksV, col: 0xf4dcc0, ao: 0.8 });
     for (const [wl, ry2] of [['front', 0], ['back', Math.PI]]) p.xf(mat(0, 0.35, 0, ry2), () => { for (let i = -1; i <= 1; i++) p.g.quad([i * 0.65 - 0.2, 0, 1.12], [i * 0.65 + 0.2, 0, 1.12], [i * 0.65 + 0.2, 0.6, 1.12], [i * 0.65 - 0.2, 0.6, 1.12], { col: WARM, tile: 0 }); });
     roof(p, { len: 2.2, wid: 2.2, y: 1.3, pitch: 1.0, th: 0.12, tile: T.shingle, col: 0xd8a070, us: 1, oe: 0.35, og: 0.35, noTails: true });
   });

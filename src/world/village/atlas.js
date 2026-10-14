@@ -160,6 +160,7 @@ export function getMaterials() {
       vec4 sampledDiffuseColor = textureGrad(map, (tcell + fract(vMapUv) * 0.92 + 0.04) * 0.25, dFdx(vMapUv) * 0.23, dFdy(vMapUv) * 0.23);
       diffuseColor *= sampledDiffuseColor;`);
   };
+  main.customProgramCacheKey = () => 'village-main';
   // signs: separate 4x3 board atlas, plain UVs, faintly self-lit at night
   const sc = mk(512, 384), sg = sc.getContext('2d');
   SIGNS.forEach((_, i) => {
@@ -180,13 +181,15 @@ export function getMaterials() {
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float aOn;\nvarying float vOn;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvOn = aOn;');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uNight;\nvarying float vOn;').replace('#include <color_fragment>', body);
   };
-  glow.onBeforeCompile = (sh) => nightHook(sh, 'diffuseColor.rgb = mix(vec3(0.12, 0.17, 0.25), vColor, max(uNight, vOn));');
+  glow.onBeforeCompile = (sh) => nightHook(sh, 'diffuseColor.rgb = mix(vec3(0.12, 0.17, 0.25), vColor.rgb, max(uNight, vOn));');
+  glow.customProgramCacheKey = () => 'village-glow';
   // translucent: blob shadows (aOn 0) and warm light pools (aOn 1, night only)
   const bc = mk(64, 64), bg = bc.getContext('2d'), rg = bg.createRadialGradient(32, 32, 0, 32, 32, 32);
   rg.addColorStop(0, 'rgba(255,255,255,1)'); rg.addColorStop(0.55, 'rgba(255,255,255,.55)'); rg.addColorStop(1, 'rgba(255,255,255,0)');
   bg.fillStyle = rg; bg.fillRect(0, 0, 64, 64);
   const trans = new MeshBasicMaterial({ map: new CanvasTexture(bc), vertexColors: true, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   trans.onBeforeCompile = (sh) => nightHook(sh, '#include <color_fragment>\ndiffuseColor.a *= vOn > 0.5 ? uNight * 0.55 : 0.5 - 0.2 * uNight;');
+  trans.customProgramCacheKey = () => 'village-trans';
   const smoke = new MeshBasicMaterial({ color: '#e6e2ee', transparent: true, opacity: 0.55, depthWrite: false });
   return (cache = { main, glow, sign, trans, smoke, night });
 }
