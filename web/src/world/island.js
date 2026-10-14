@@ -14,7 +14,7 @@ export function coastRadius(t) {
 }
 
 const hills = (x, z) => 3 * Math.sin(x * 0.04 + 1.3) * Math.cos(z * 0.05 + 0.7) + 1.5 * Math.sin((x + z) * 0.09 + 2);
-const woods = (x, z) => Math.sin(x * 0.07) * Math.sin(z * 0.06 + 2) + 0.5 * Math.sin((x - z) * 0.11);
+export const woods = (x, z) => Math.sin(x * 0.07) * Math.sin(z * 0.06 + 2) + 0.5 * Math.sin((x - z) * 0.11);
 
 const GROVE = { x: -72, z: -30 }, T_BEACH = 2.4;
 
