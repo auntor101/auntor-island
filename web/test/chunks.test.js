@@ -27,6 +27,6 @@ test('chunk count within the view radius stays below 220', () => {
 test('chunk mesh: 33x33 grid plus skirts, finite data; deep sea chunk is skipped', () => {
   const m = buildChunkMesh(0, 0, 0);
   assert.equal(m.geometry.attributes.position.count, 33 * 33 + 4 * 33);
-  for (const a of ['position', 'normal', 'color']) assert.ok(m.geometry.attributes[a].array.every(Number.isFinite));
+  for (const a of ['position', 'normal', 'wa', 'wb', 'aux']) assert.ok(m.geometry.attributes[a].array.every(Number.isFinite));
   assert.equal(buildChunkMesh(20, 20, 2), null);
 });

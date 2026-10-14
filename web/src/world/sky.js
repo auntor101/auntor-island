@@ -24,16 +24,20 @@ export function createSky() {
         vec3 col = mix(horizon, mix(zenith, vec3(.8, .9, 1.), .3), smoothstep(0., .22, y)); // narrow warm band, then blue (no peach+blue mud)
         col = mix(col, zenith, smoothstep(.15, .9, y));
         float s = max(dot(d, sunDir), 0.);
-        col += sunColor * (pow(s, 6.) * 0.3 + pow(s, 48.) * 0.55);
-        col = mix(col, sunColor * 3., smoothstep(0.9985, 0.999, s)); // sun disc
-        // cloud bands: flat layer projected from the view dir, stretched along x
+        col += sunColor * (pow(s, 5.) * 0.25 + pow(s, 40.) * 0.5);                        // soft halo
+        col = mix(col, sunColor * 3., smoothstep(0.9993, 0.99945, s));                    // sharp disc
+        // cel clouds: hard-ish edge, light top / blue-grey underside (two tones), thin soft rim
         vec2 p = d.xz / (d.y + 0.12) * vec2(0.5, 1.4);
+        vec2 toSun = normalize(sunDir.xz + 1e-4) * vec2(0.5, 1.4) * 0.07;
         float f = noise(p * 1.3) * 0.6 + noise(p * 2.9 + 7.) * 0.4;
-        float c = smoothstep(0.52, 0.55, f) * smoothstep(0.03, 0.2, d.y);
-        vec3 cloud = mix(horizon * 1.1, vec3(1.), 0.85) * 1.15;
-        cloud = mix(cloud, sunColor * 1.15, pow(s, 3.) * 0.7);
-        cloud = mix(cloud, mix(zenith, horizon, 0.7), smoothstep(0.62, 0.52, f) * 0.4); // darker belly
-        col = mix(col, cloud, c * 0.92);
+        float f2 = noise((p + toSun) * 1.3) * 0.6 + noise((p + toSun) * 2.9 + 7.) * 0.4;
+        float c = smoothstep(0.535, 0.545, f) * smoothstep(0.03, 0.2, d.y);
+        vec3 lit = mix(horizon * 1.1, vec3(1.), 0.85) * 1.2;
+        lit = mix(lit, sunColor * 1.2, pow(s, 3.) * 0.6);
+        vec3 shade = mix(zenith, vec3(.62, .68, .86), .65) * 0.95;
+        vec3 cloud = mix(shade, lit, smoothstep(-0.005, 0.005, f - f2 + 0.012));   // lit where the sun-side edge is thinner
+        cloud = mix(cloud, lit, smoothstep(0.62, 0.68, f) * 0.5);                  // thick cores catch light
+        col = mix(col, cloud, c);
         gl_FragColor = vec4(col, 1.);
       }`,
   });
