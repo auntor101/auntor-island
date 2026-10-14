@@ -323,7 +323,7 @@ export function createLife(scene, { heightAt, isWet, zoneAt, onSfx = () => {}, i
       if (s.ev === 'notice') { emote(v, 'bang', 1.0); if (v.kind === 'dog' && rand() < 0.3) sfx('whine', s.x, s.z, cp); }
       else if (s.ev === 'meow' || s.ev === 'bark') { sfx(s.ev, s.x, s.z, cp); emote(v, 'note', 1.6); if (s.ev === 'bark' && rand() < 0.5) sfx('pant', s.x, s.z, cp); }
       if (night && v.sleepK > 0.6 && d < 14 && (v.zT = (v.zT || 0) - dt) < 0) { v.zT = 2.8 + rand(); emote(v, 'zzz', 2.2); }
-      if (d < MIXER_DIST || v.sleepK > 0) { drawAnimal(v, dt); v.posed = true; } else { v.holder.position.set(s.x, heightAt(s.x, s.z), s.z); addShadow(s.x, v.holder.position.y, s.z, 1); }
+      if (d < MIXER_DIST || (s.mode === 'sleep' ? v.sleepK < 0.99 : v.sleepK > 0.01)) { drawAnimal(v, dt); v.posed = true; } else { v.holder.position.set(s.x, heightAt(s.x, s.z), s.z); addShadow(s.x, v.holder.position.y, s.z, 1); }
     }
     const cv = loaded ? getComp(compKind) : null;
     for (const k in comps) if (comps[k]) comps[k].holder.visible = comps[k] === cv;

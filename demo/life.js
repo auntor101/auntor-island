@@ -41,25 +41,39 @@ body.position.y = 1; head.position.y = 1.6; avatar.add(body, head); scene.add(av
 const [wx, wz] = q.has('warp') ? q.get('warp').split(',').map(Number) : [LANDMARKS.spawn.x, LANDMARKS.spawn.z];
 let state = { x: wx, z: wz, y: heightAt(wx, wz), heading: 0, speed: 0 };
 const cam = createCamera(camera), bot = q.get('bot') || 'stand';
-const log = { sfx: [], trace: [], frames: 0, maxWetAnimals: 0 };
-const demo = window.__demo = { life, log, gl, get state() { return state; }, warp(x, z) { state = { x, z, y: heightAt(x, z), heading: state.heading, speed: 0 }; },
+const log = { sfx: [], trace: [], frames: 0, maxWetAnimals: 0, modes: {} };
+const demo = window.__demo = { life, log, gl, scene, get state() { return state; }, warp(x, z) { state = { x, z, y: heightAt(x, z), heading: state.heading, speed: 0 }; },
   pet: () => life.pet(), nearest: (kind) => life._views.filter((v) => v.kind === kind && v.holder.visible).sort((a, b) => Math.hypot(a.st.x - state.x, a.st.z - state.z) - Math.hypot(b.st.x - state.x, b.st.z - state.z))[0] };
 
+const STEPS = Number(q.get('steps') || 1);
 let ready = false, t = 0, wp = 0;
+function sample() {
+  log.frames++;
+  for (const a of life.animals) if (a.visible && isWet(a.x, a.z)) log.maxWetAnimals++;
+  if (isWet(life.stats.comp.x, life.stats.comp.z)) log.maxWetAnimals++;
+  const c = life.stats.comp, d = Math.hypot(c.x - state.x, c.z - state.z);
+  log.compDist = Math.max(log.compDist || 0, t > 8 ? d : 0); log.compDistNow = d;
+  for (const a of life.animals) { const dd = Math.hypot(a.x - state.x, a.z - state.z); if (a.visible && dd < (log.minAnimal ?? 99)) log.minAnimal = dd; log.modes[a.mode] = (log.modes[a.mode] || 0) + 1; }
+  if (log.frames % 90 === 0 && log.trace.length < 400) log.trace.push([+t.toFixed(1), +state.x.toFixed(1), +state.z.toFixed(1), +c.x.toFixed(1), +c.z.toFixed(1), +d.toFixed(1)]);
+}
 startLoop((rawDt) => {
   const dt = 1 / 30;
   chunks.update(state);
   if (!ready && chunks.built === chunks.wanted && chunks.wanted > 0 && life.stats.animals > 0) { ready = true; status.textContent = 'ready'; }
-  if (ready) {
-    t += dt; wp += 1;
-    const inp = { x: 0, y: 0, run: false, cameraYaw: cam.yaw };
-    if (bot === 'walk') { inp.y = 1; inp.cameraYaw = Math.sin(t * 0.25) * 1.2; }
-    else if (bot === 'circle') { inp.y = 1; inp.x = 0.35; inp.cameraYaw = cam.yaw; }
-    state = stepPlayer(state, inp, dt, heightAt);
+  // ?steps=n runs n simulation ticks per frame (software GL renders about 1 fps; the logic should still get minutes)
+  for (let i = 0; i < (ready ? STEPS : 1); i++) {
+    if (ready) {
+      t += dt; wp += 1;
+      const inp = { x: 0, y: 0, run: q.has('run'), cameraYaw: cam.yaw };
+      if (bot === 'walk') { inp.y = 1; inp.cameraYaw = Math.sin(t * 0.25) * 1.2; }
+      else if (bot === 'circle') { inp.y = 1; inp.x = 0.35; inp.cameraYaw = cam.yaw; }
+      state = stepPlayer(state, inp, dt, heightAt);
+    }
+    cam.update(state, 0, 0, dt);
+    life.update(dt, state, camera, pal);
+    if (ready) sample();
   }
-  cam.update(state, 0, 0, dt);
   avatar.position.set(state.x, state.y, state.z); avatar.rotation.y = state.heading;
-  life.update(dt, state, camera, pal);
   const f = q.get('focus');
   if (f && ready) { // close-up camera: 2.2 m from the chosen animal, a little above
     const v = f === 'comp' ? life._comp() : demo.nearest(f);
@@ -69,10 +83,4 @@ startLoop((rawDt) => {
   water.mesh.position.set(Math.round(state.x / 8) * 8, 0, Math.round(state.z / 8) * 8);
   water.update(performance.now() / 1000, pal);
   gl.render(scene, camera, rawDt * 1000);
-  if (ready) {
-    log.frames++;
-    for (const a of life.animals) if (a.visible && isWet(a.x, a.z)) log.maxWetAnimals++;
-    if (isWet(life.stats.comp.x, life.stats.comp.z)) log.maxWetAnimals++;
-    if (log.frames % 15 === 0 && log.trace.length < 3000) log.trace.push([+t.toFixed(1), +state.x.toFixed(1), +state.z.toFixed(1), life.stats.comp.x.toFixed(1), life.stats.comp.z.toFixed(1)]);
-  }
 });
