@@ -10,7 +10,7 @@ assert.ok(html.indexOf('Content-Security-Policy') < html.indexOf('<script'), 'CS
 
 // every local script and the models the game loads must be in the build
 for (const m of html.matchAll(/<script src="([^"]+)"><\/script>/g)) assert.ok(fs.existsSync(path.join(out, m[1])), m[1] + ' is in the build');
-for (const f of ['assets/nature/manifest.json', 'assets/nature/CommonTree_3.glb', 'assets/animals/Cat.fbx', 'assets/CREDITS.md', '.nojekyll']) assert.ok(fs.existsSync(path.join(out, f)), f + ' is in the build');
+for (const f of ['assets/nature/manifest.json', 'assets/nature/CommonTree_3.glb', 'assets/animals/Cat.fbx', 'assets/CREDITS.md', '.nojekyll', '_headers']) assert.ok(fs.existsSync(path.join(out, f)), f + ' is in the build');
 
 // nothing private or heavy may ship
 for (const f of ['node_modules', 'docs', 'tools', 'assets-src', '.superpowers', 'CLAUDE.md', 'package.json', 'concepts', '.git']) assert.ok(!fs.existsSync(path.join(out, f)), f + ' must not be in the build');

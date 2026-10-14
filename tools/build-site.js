@@ -42,6 +42,7 @@ function build() {
   copyDir(path.join(root, 'vendor'), path.join(out, 'vendor'));
   copyDir(path.join(root, 'assets'), path.join(out, 'assets'));
   fs.writeFileSync(path.join(out, '.nojekyll'), '');
+  fs.copyFileSync(path.join(root, 'site', '_headers'), path.join(out, '_headers'));
   return out;
 }
 
