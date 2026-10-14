@@ -6,3 +6,6 @@ tools/shots/
 assets-src/
 dist/
 .claude/
+web/node_modules/
+web/dist/
+web/shots/
