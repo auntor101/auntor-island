@@ -16,13 +16,15 @@ Most visitors arrive on a phone, inside Instagram's in-app browser. Every change
 - `js/game.js`: the whole game (the old inline script, unchanged in structure). Its banner sections are described below.
 - `js/profile.js`: player profile validation and appearance data (pure, unit-tested by `tools/test-profile.js`).
 - `js/charselect.js`: the start-screen character-select UI. It talks to the game only through `window.LI`.
-- `js/assets.js`: fail-soft GLB loader `LI.assets` (`available`, `model`, `manifest`, `texture`). Missing or failed files leave the built-in primitives in place.
+- `js/assets.js`: fail-soft GLB and FBX loader `LI.assets` (`available`, `model`, `manifest`, `texture`, `fbx`). Missing or failed files leave the built-in primitives in place.
+- `js/cats.js`: the wandering cats `LI.cats` (breeds, state machine, spawn and update). See "Cats" below.
 - `js/nature.js`: seasonal tree instancing `LI.nature`. It swaps the blob trees on the hub for Quaternius models once they load.
-- `assets/`: shipped, optimised models and textures. `assets/nature/` holds the trees, bush and their `manifest.json`.
+- `assets/`: shipped, optimised models and textures. `assets/nature/` holds the trees, bush and their `manifest.json`. `assets/animals/Cat.fbx` is the cat model.
 - `assets/CREDITS.md`: licences and sources for every shipped asset. Update it with any new asset.
 - `assets-src/`: git-ignored raw source packs. Keep the originals here, not in git.
 - `tools/prepare-assets.js`: `npm run prepare-assets` regenerates `assets/nature/` from `assets-src/nature-kit`.
-- `vendor/three/`: three.js r128 and the post-processing files it uses (EffectComposer, RenderPass, ShaderPass, UnrealBloomPass, CopyShader, LuminosityHighPassShader, FXAAShader). These are the classic `examples/js` global-script builds, not ES modules, and they attach to `window.THREE`.
+- `vendor/three/`: three.js r128 and the post-processing files it uses (EffectComposer, RenderPass, ShaderPass, UnrealBloomPass, CopyShader, LuminosityHighPassShader, FXAAShader), plus SkeletonUtils, GLTFLoader, FBXLoader and `fflate.min.js` (MIT; FBXLoader uses its `unzlibSync`). These are the classic `examples/js` global-script builds, not ES modules, and the three.js files attach to `window.THREE`.
+- `tools/test-cats.js`: unit test for the cat breeds and the `stepCat` state machine (run by `npm test`).
 - `concepts/five-worlds.html`: the earlier five-concept sketch demo, kept for reference.
 - `docs/brainstorm.md`: idea backlog (portal worlds, NPCs, question types, Instagram loop).
 - `tools/`: the headless test and the screenshot script.
@@ -78,15 +80,28 @@ The script is divided by `/* ===== ... ===== */` banners, in this order:
 
 ## Optional models
 - Models load asynchronously through `LI.assets`. Every user of a model must keep a built-in fallback that renders without it.
-- The headless test (`npm test`) never loads GLBs. Check model visuals in the browser.
+- The headless test (`npm test`) never loads GLBs or FBX files. Check model visuals in the browser.
 - Budgets: textures are 512 px at most. Keep each phone scene near 150k triangles.
 - Shrink or replace oversized models with `npm run prepare-assets`, and record new sources in `assets/CREDITS.md`.
+
+## Cats
+- `js/cats.js` (`LI.cats`) puts wandering cats on the hub. There is one model, `assets/animals/Cat.fbx`, loaded with `LI.assets.fbx` and cloned with `SkeletonUtils`. Each of the ten entries in `BREEDS` recolours a clone (body, accent, size).
+- Only the `Idle` and `Walking` clips are used. `makeState` and `stepCat` are a pure state machine (`{x,z,heading,tx,tz,mode,timer}`), tested by `tools/test-cats.js`.
+- Touch devices spawn 6 cats and desktop 12. Mixers only update for cats within 30 units of the camera.
+- Fail-soft: if the FBX, the loaders or the clips are missing, no cats spawn and the island is unchanged.
+- `regroup()` merges the model's material groups into 3 per cat, because each group costs a draw call. Measured on touch with 6 cats: 98 to 116 draw calls and 153k to 158k triangles.
+- A note, 'A <Breed>!', shows the first time you get near each cat.
 
 ## Known gaps
 - Spring leaves read dusty raspberry with dark shaded sides, not soft blossom.
 - Desktop triangle count (about 437k) has no budget yet.
 - Phones show 16 trees.
-- No pines, flowers, grass models, houses or cats yet.
+- No pines, flowers, grass models or houses yet.
+- Cats have only the Idle and Walk clips: no sitting, grooming, pouncing or napping.
+- Breeds are colour and size variants of one body, not different head shapes.
+- Cats cannot be petted or otherwise interacted with yet.
+- Desktop cost with 12 cats is not measured.
+- Only 4 of the 10 breeds have been seen in renders.
 
 ## Debug hooks
 - `window.__lumen` exposes the state `S`, the player `P`, `NPC`, `talk`, `enterGlobe`, `exitGlobe`, `pick`, `advance` and `step`. The tests use these.
