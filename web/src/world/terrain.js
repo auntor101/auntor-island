@@ -117,7 +117,7 @@ function noiseTile() {
 // Fragment cost: no loops; grass about 10 texture reads, rock about 9 more, each layer skipped when its weight is ~0.
 const FRAG = `
 #include <fog_pars_fragment>
-uniform sampler2D uNoise; uniform vec3 uSunDir, uSunColor, uAmbient, uGround;
+uniform sampler2D uNoise; uniform vec3 uSunDir, uSunColor, uAmbient, uGround; uniform float uSnow;
 varying vec4 vA, vB; varying vec2 vAux; varying vec3 vN, vW;
 vec3 S(vec3 c){ return pow(c, vec3(2.2)); }                       // sRGB-written colours -> linear
 vec4 T(vec2 p, float f){ return texture2D(uNoise, p * f / 128.); } // f = features per metre
@@ -189,6 +189,12 @@ void main(){
     float sh = smoothstep(.95, .55, N.y) * .7 + smoothstep(.45,.4,T(p, 1.2).g) * .15;
     col += w1.w * mix(S(vec3(.97,.98,1.)), S(vec3(.66,.74,.95)), sh);
   }
+  if (uSnow > .01) { // ground snow cover: up-facing, above the waterline, ragged edge
+    float cov = uSnow * smoothstep(.62, .85, N.y + eN * .5) * smoothstep(.2, 1.1, h + mid.g * .5) * (1. - blk * .6) * (1. - w2.x);
+    vec3 sn = mix(S(vec3(.98,.99,1.)), S(vec3(.70,.79,.97)), smoothstep(.95, .75, N.y) * .8 + smoothstep(.5, .75, big.r) * .5 + smoothstep(.55, .62, mid.b) * .25); // drifts and shade pools
+    sn = mix(sn, sn * 1.25 + .05, smoothstep(.9, .93, T(p, 7.).a) * det);                                           // sparkle
+    col = mix(col, sn, cov);
+  }
   // cel lighting: 4 steps, cool tinted shade, warm sun (colour choices are ACES-aware)
   float nd = dot(N, uSunDir);
   float band4 = (smoothstep(-.14,-.1,nd) + smoothstep(.1,.14,nd) + smoothstep(.4,.44,nd)) / 3.;
@@ -211,7 +217,7 @@ export function createTerrainMaterial() {
     fog: true,
     uniforms: UniformsUtils.merge([UniformsLib.fog, {
       uNoise: { value: noiseTile() }, uSunDir: { value: new Vector3(0, 1, 0) }, uSunColor: { value: new Color() },
-      uAmbient: { value: new Color() }, uGround: { value: new Color() },
+      uAmbient: { value: new Color() }, uGround: { value: new Color() }, uSnow: { value: 0 },
     }]),
     vertexShader: `
       #include <fog_pars_vertex>
@@ -227,7 +233,7 @@ export function createTerrainMaterial() {
   });
   const u = m.uniforms;
   m.update = (p) => {
-    u.uSunDir.value.copy(p.sunDir); u.uSunColor.value.set(p.sunColor); u.uAmbient.value.set(p.ambient);
+    u.uSunDir.value.copy(p.lightDir || p.sunDir); u.uSunColor.value.set(p.sunColor).multiplyScalar(p.sunIntensity ?? 1); u.uSnow.value = p.snow || 0; u.uAmbient.value.set(p.ambient);
     u.uGround.value.set(p.ambient).multiplyScalar(0.55).lerp(new Color('#8a6a48'), 0.35);
   };
   return m;
