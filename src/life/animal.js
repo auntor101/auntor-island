@@ -135,7 +135,7 @@ export function stepCompanion(c, dt, p, ok, rand) {
   if (dp > COMP.teleport) { c.x = c.target.x; c.z = c.target.z; c.speed = 0; c.teleported = true; return; }
   const dx = c.target.x - c.x, dz = c.target.z - c.z, d = Math.hypot(dx, dz);
   // matched to the player: walking pace near you, a burst when behind; slows to a stop over the last 1.2 m
-  const want = d < 0.25 ? 0 : Math.min(COMP.maxSpeed, Math.max(p.speed * 1.1, 0.6) + Math.max(0, d - 2.5) * 1.2, d * 2.2 + 0.3);
+  const want = d < 0.25 ? 0 : Math.min(COMP.maxSpeed, Math.max(p.speed * 1.1, 0.6) + Math.max(0, d - 2.5) * 1.2, d * 5 + 0.3);
   c.speed += (want - c.speed) * Math.min(1, dt * 8);
   if (c.speed > 0.15) {
     const base = Math.atan2(dx, dz);
