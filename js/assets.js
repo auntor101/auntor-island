@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const LI = window.LI = window.LI || {};
-  const cache = { model: {}, manifest: {}, texture: {} };
+  const cache = { model: {}, manifest: {}, texture: {}, fbx: {} };
   let loader = null;
 
   const available = () => !!(window.THREE && THREE.GLTFLoader && typeof fetch === 'function');
@@ -24,5 +24,11 @@
   const texture = (dir, file) => memo('texture', dir + '/' + file, guard(() =>
     new Promise((res, rej) => new THREE.TextureLoader().load('assets/' + dir + '/' + file, t => { t.flipY = false; res(t); }, undefined, rej))));
 
-  LI.assets = { available, model, manifest, texture };
+  const availableFbx = () => !!(window.THREE && THREE.FBXLoader && typeof fetch === 'function');
+  let fbxLoader = null;
+  const fbx = (dir, name) => memo('fbx', dir + '/' + name, () => (availableFbx()
+    ? new Promise((res, rej) => { fbxLoader = fbxLoader || new THREE.FBXLoader(); fbxLoader.load('assets/' + dir + '/' + name + '.fbx', res, undefined, rej); })
+    : null));
+
+  LI.assets = { available, model, manifest, texture, fbx };
 })();

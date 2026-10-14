@@ -4,6 +4,7 @@
 |---|---|---|---|
 | CommonTree 3, 4, 5, Bush Common (Stylized Nature MegaKit) | Quaternius | https://quaternius.com/packs/stylizednaturemegakit.html (downloaded via https://poly.pizza/bundle/Stylized-Nature-MegaKit-T34GZFA0fm) | CC0 1.0 (public domain) |
 | three.js r128 (vendored in `vendor/three/`: GLTFLoader, EffectComposer, passes, shaders, SkeletonUtils) | three.js authors | https://threejs.org | MIT (`vendor/three/LICENSE`) |
+| Cat (Animal Pack Vol.2) | Quaternius | https://opengameart.org/content/animated-animales-low-poly | CC0 1.0 (public domain) |
 
 Bush_Common is prepared for a later bush/flower pass and is not loaded yet.
 

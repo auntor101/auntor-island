@@ -14,6 +14,8 @@ assert.strictEqual(A.available(), false, 'no GLTFLoader means unavailable');
   assert.strictEqual(await A.model('nature', 'CommonTree_3'), null, 'model resolves null when unavailable');
   assert.strictEqual(await A.manifest('nature'), null, 'manifest resolves null when unavailable');
   assert.strictEqual(await A.texture('nature', 'tex/x.webp'), null, 'texture resolves null when unavailable');
+  assert.strictEqual(typeof A.fbx, 'function', 'assets.fbx exists');
+  assert.strictEqual(await A.fbx('animals', 'Cat'), null, 'fbx resolves null when unavailable');
   // js/nature.js: season zones by angle around the island centre
   const nctx = { console, window: null, THREE: {} };
   nctx.window = nctx;
