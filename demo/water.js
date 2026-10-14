@@ -2,7 +2,7 @@
 // ?cam=sea|lake|falls|river|shore|aerial  ?t=<hours>  ?ripple=1  ?snow=1  ?freeze=1. window.__water = { time, auto, ripples(), measure() }.
 import { BufferAttribute, Scene, PerspectiveCamera, HemisphereLight, DirectionalLight, Fog, Color, Vector3, Mesh, PlaneGeometry, MeshLambertMaterial } from 'three';
 import { createRenderer, startLoop } from '../src/render/renderer.js';
-import { heightAt, LAKE, RIVERS, FALLS } from '../src/world/island.js';
+import { heightAt, waterSurfaceAt, LAKE, RIVERS, FALLS } from '../src/world/island.js';
 import { createSky } from '../src/world/sky.js';
 import { skyPalette, sunDirection, moonDirection } from '../src/world/time.js';
 import { createStars } from '../src/world/stars.js';
@@ -34,7 +34,9 @@ function carve(h, x, z) {
   });
   return h;
 }
+const REAL = q.get("real") === "1"; // ?real=1: the real island.js terrain instead of the local test terrain
 function testH(x, z) {
+  if (REAL) return heightAt(x, z);
   let h = heightAt(x, z);
   const W = 1 - sm(70, 100, Math.hypot(x + 5, z + 55));
   if (W > 0) {
@@ -47,6 +49,7 @@ function testH(x, z) {
   return carve(h, x, z);
 }
 function surfaceAt(x, z) {
+  if (REAL) return waterSurfaceAt(x, z);
   const h = testH(x, z);
   if (h < 0) return 0;
   if (lakeD(x, z) < LAKE.r && h < LAKE.level) return LAKE.level;

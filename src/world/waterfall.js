@@ -13,7 +13,7 @@ export function fallInfo(fall, rivers, lake) {
     const t = Math.max(0, Math.min(1, ((fall.x - ax) * vx + (fall.z - az) * vz) / l2)), d = Math.hypot(ax + vx * t - fall.x, az + vz * t - fall.z);
     if (d < best) { best = d; const l = Math.sqrt(l2); dx = vx / l; dz = vz / l; width = r.width; }
   }
-  const bulge = 1.1;
+  const bulge = 2.6;
   return { x: fall.x, z: fall.z, dx, dz, width, top: lake.level + fall.drop, bottom: lake.level, bulge, px: fall.x + dx * (bulge + 0.6), pz: fall.z + dz * (bulge + 0.6) };
 }
 
