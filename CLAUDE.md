@@ -116,5 +116,7 @@ The script is divided by `/* ===== ... ===== */` banners, in this order:
 - Test on a real phone inside Instagram's in-app browser.
 
 ## Deploy
-- Netlify: drag the folder into app.netlify.com/drop, or run `npx netlify-cli deploy --prod --dir .`.
-- The site is fully static and needs no build step.
+- `npm run build` creates `dist/` (index.html with a CSP meta tag, js/, vendor/, assets/, .nojekyll). Only `dist/` is ever published.
+- Live site: GitHub Pages from the `gh-pages` branch of github.com/auntor101/auntor-island, served at https://auntor101.github.io/auntor-island/. Static hosts without header support cannot set real security headers; the CSP meta tag covers script, style, font, image and connect sources but not frame-ancestors.
+- To republish: `npm test && npm run build`, then commit the contents of `dist/` to the `gh-pages` branch (a git worktree in a temp folder keeps main clean) and push. Netlify/Cloudflare work too with publish dir `dist` and build command `node tools/build-site.js`.
+- Commit author identity for this repo is the GitHub no-reply address; never commit with a personal email address.

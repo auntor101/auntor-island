@@ -26,11 +26,13 @@ npm test          # plays the whole quest chain headlessly and checks for errors
 npm run shots     # saves desktop and phone screenshots to tools/shots/
 ```
 
-## Deploy (Netlify)
-- Easiest: drag this folder onto https://app.netlify.com/drop
-- CLI: `npx netlify-cli deploy --prod --dir .`
+## Deploy
+`npm run build` writes `dist/`, which holds only what visitors need (page, scripts, vendor, assets) and adds a Content-Security-Policy meta tag. Never publish the project root: it contains sources, docs and `node_modules`.
 
-Then put the Netlify URL in your Instagram bio.
+- **GitHub Pages (current):** the `gh-pages` branch holds a copy of `dist/`. Publish with `npm run build`, then push `dist/` to `gh-pages` (see CLAUDE.md).
+- **Netlify / Cloudflare Pages:** build command `node tools/build-site.js`, publish directory `dist`.
+
+Put the live URL in your Instagram bio.
 
 ## Controls
 - Phone: drag the left half of the screen to walk and the right half to look. Tap a villager or press the action button to talk.
