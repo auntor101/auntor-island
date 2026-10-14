@@ -46,3 +46,23 @@ test('keepOut covers buildings and not far wilderness', () => {
   assert.ok(L.keepOut(L.center[0], L.center[1], 0));
   assert.ok(LANDMARKS.village);
 });
+
+import * as B from '../src/world/village/buildings.js';
+import * as PR from '../src/world/village/props.js';
+import { makeRoadRibbon } from '../src/world/village/road.js';
+
+test('buildings: triangle budget and no NaN', () => {
+  const all = { longhouse: B.makeLonghouse({ seed: 3 }), turf: B.makeLonghouse({ roof: 'turf', seed: 4, length: 16 }), hall: B.makeHall(), forge: B.makeForge(), stable: B.makeStable(), theatre: B.makeTheatre(), boathouse: B.makeBoathouse(), ship: PR.makeLongship(), dock: PR.makeDock({ x: 0, z0: 100, z1: 120, width: 3.2, deck: 1.1 }, () => 1) };
+  for (const v of VENUES) all['shop-' + v] = B.makeShop({ venue: v });
+  for (const [n, p] of Object.entries(all)) {
+    assert.ok(p.tris >= 700 && p.tris <= 4000, `${n} ${p.tris} tris`);
+    for (const k of ['m', 'g', 's']) assert.ok(!p[k].p.some(Number.isNaN), `${n} NaN`);
+  }
+});
+
+test('road ribbon follows the ground and is one geometry', () => {
+  const g = makeRoadRibbon([[0, 0], [10, 0], [20, 5]], 3, (x, z) => 2);
+  const pos = g.attributes.position;
+  for (let i = 0; i < pos.count; i++) assert.ok(pos.getY(i) > 1.9 && pos.getY(i) < 2.2);
+  assert.ok(g.index.count > 0);
+});

@@ -9,7 +9,7 @@ import { createStars } from '../src/world/stars.js';
 import { createMoon } from '../src/world/moon.js';
 import { skyPalette, sunDirection, moonDirection } from '../src/world/time.js';
 import { createVillage } from '../src/world/village/village.js';
-import { toWorld } from '../src/world/village/layout.js';
+import { toWorld, distToRect } from '../src/world/village/layout.js';
 
 const q = new URLSearchParams(location.search), hours = Number(q.get('t') ?? 15.5), view = q.get('cam') || 'square';
 const canvas = document.getElementById('gl'), status = document.getElementById('status');
@@ -41,7 +41,7 @@ const B = (t) => L.buildings.find((b) => b.type === t), homes = L.buildings.filt
 const frontOf = (f, d, h = 2.6) => { const [x, z] = toWorld(f, 0, f.d / 2 + d); return [x, gy(x, z) + h, z]; };
 const at = (f, y = 3) => [f.x, gy(f.x, f.z) + y, f.z];
 const VIEWS = {
-  square: () => [[C[0] + 13, gy(C[0] + 13, C[1] + 13) + 4.5, C[1] + 13], [C[0] - 2, gy(C[0], C[1]) + 2, C[1] - 4]],
+  square: () => { for (let k = 0; k < 16; k++) { const a = 0.6 + k * 0.39, x = C[0] + Math.cos(a) * 17, z = C[1] + Math.sin(a) * 17; if (L.buildings.every((b) => distToRect(b, x, z) > 4) || k === 15) return [[x, gy(x, z) + 3.6, z], [C[0], gy(C[0], C[1]) + 2.2, C[1]]]; } },
   street: () => [[C[0] - 8.5, gy(C[0] - 8.5, C[1]) + 2.4, C[1] + 0.5], [C[0] - 34, gy(C[0] - 34, C[1]) + 3, C[1] - 0.5]],
   harbour: () => [[L.dock.x + 17, 5.5, L.dock.z0 - 4], [L.dock.x - 3, 1.8, L.dock.z1 - 6]],
   hall: () => [frontOf(B('hall'), 15, 2.8), at(B('hall'), 3.4)],
