@@ -9,8 +9,8 @@ camera.position.set(3, 3, 5);
 camera.lookAt(0, 0.8, 0);
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
 
-scene.add(new HemisphereLight('#fff4d6', '#6a8f5a', 1.2));
-const sun = new DirectionalLight('#fff0cc', 2.5);
+scene.add(new HemisphereLight("#fff4d6", "#6a8f5a", 1.5));
+const sun = new DirectionalLight("#fff0cc", 3);
 sun.position.set(5, 8, 3);
 scene.add(sun);
 const ground = new Mesh(new PlaneGeometry(40, 40), new MeshStandardMaterial({ color: '#7fb069' }));
@@ -28,13 +28,13 @@ btn.onclick = () => { panel.hidden = !panel.hidden; };
 hud.append(btn, panel);
 
 let acc = 0;
-startLoop((dt) => {
+startLoop((dt, _now, rawMs) => {
   cube.rotation.y += dt;
-  gl.render(scene, camera, dt * 1000);
+  gl.render(scene, camera, rawMs);
   acc += dt;
   if (acc > 0.25 && !panel.hidden) {
     acc = 0;
     const s = gl.stats();
-    panel.textContent = `fps ${s.fps}\ncalls ${s.calls}\ntris ${s.triangles}\npr ${s.pixelRatio.toFixed(2)}`;
+    panel.textContent = `fps ${s.fps}\ncalls (all passes) ${s.calls}\ntris (all passes) ${s.triangles}\npr ${s.pixelRatio.toFixed(2)}`;
   }
 });

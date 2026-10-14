@@ -1,12 +1,11 @@
-import { WebGLRenderer, ACESFilmicToneMapping, SRGBColorSpace, HalfFloatType } from 'three';
-import { EffectComposer, RenderPass, EffectPass, BloomEffect, SMAAEffect } from 'postprocessing';
-import { nextPixelRatio } from './governor.js';
+import { WebGLRenderer, NoToneMapping, SRGBColorSpace, HalfFloatType } from 'three';
+import { EffectComposer, RenderPass, EffectPass, BloomEffect, SMAAEffect, ToneMappingEffect, ToneMappingMode } from 'postprocessing';
+import { nextPixelRatio, clampPixelRatio, smoothMs } from './governor.js';
 
 export function createRenderer(canvas) {
   const renderer = new WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
   renderer.outputColorSpace = SRGBColorSpace;
-  renderer.toneMapping = ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.0;
+  renderer.toneMapping = NoToneMapping; // tone mapping happens in the composer (ToneMappingEffect)
   renderer.info.autoReset = false;
 
   const composer = new EffectComposer(renderer, { frameBufferType: HalfFloatType });
@@ -15,18 +14,19 @@ export function createRenderer(canvas) {
   let pixelRatio = ceiling;
   let avg = 16, above = 0, below = 0, calls = 0, triangles = 0;
 
-  const setPixelRatio = (n) => { pixelRatio = n; renderer.setPixelRatio(n); resize(); };
+  const setPixelRatio = (n) => { pixelRatio = clampPixelRatio(n, ceiling); resize(); };
   const resize = () => {
     renderer.setPixelRatio(pixelRatio);
     composer.setSize(window.innerWidth, window.innerHeight);
   };
   window.addEventListener('resize', resize);
 
+  // dtMs is the RAW frame delta. calls/triangles count every post-processing pass, not just the scene.
   function render(scene, camera, dtMs = 16) {
     if (!renderPass) {
       renderPass = new RenderPass(scene, camera);
       composer.addPass(renderPass);
-      composer.addPass(new EffectPass(camera, new BloomEffect({ luminanceThreshold: 0.85, intensity: 0.5, mipmapBlur: true }), new SMAAEffect()));
+      composer.addPass(new EffectPass(camera, new BloomEffect({ luminanceThreshold: 0.85, intensity: 0.5, mipmapBlur: true }), new ToneMappingEffect({ mode: ToneMappingMode.ACES_FILMIC }), new SMAAEffect()));
       resize();
     }
     renderPass.scene = scene;
@@ -36,7 +36,7 @@ export function createRenderer(canvas) {
     calls = renderer.info.render.calls;
     triangles = renderer.info.render.triangles;
 
-    avg += (dtMs - avg) * 0.05;
+    avg = smoothMs(avg, dtMs);
     above = avg > 20 ? above + dtMs : 0;
     below = avg < 12 ? below + dtMs : 0;
     const next = nextPixelRatio(pixelRatio, avg, above, below, ceiling);
@@ -51,9 +51,9 @@ export function startLoop(update) {
   let id, last = performance.now();
   const tick = (now) => {
     id = requestAnimationFrame(tick);
-    const dt = Math.min((now - last) / 1000, 0.05);
+    const raw = now - last;
     last = now;
-    update(dt, now);
+    update(Math.min(raw / 1000, 0.05), now, raw);
   };
   id = requestAnimationFrame(tick);
   return () => cancelAnimationFrame(id);

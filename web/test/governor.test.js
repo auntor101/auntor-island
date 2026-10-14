@@ -23,3 +23,17 @@ test('does not raise before 5s', () => {
 test('respects a ceiling under 2', () => {
   assert.equal(nextPixelRatio(...args(1.5, 8, 0, 6000, 1.5)), 1.5);
 });
+
+import { clampPixelRatio, smoothMs } from '../src/render/governor.js';
+
+test('clampPixelRatio clamps to [1, ceiling]', () => {
+  assert.equal(clampPixelRatio(0.5, 2), 1);
+  assert.equal(clampPixelRatio(3, 2), 2);
+  assert.equal(clampPixelRatio(1.5, 2), 1.5);
+  assert.equal(clampPixelRatio(2, 1.5), 1.5);
+});
+test('smoothMs follows raw frame time beyond 50 ms', () => {
+  let a = 16;
+  for (let i = 0; i < 200; i++) a = smoothMs(a, 100);
+  assert.ok(a > 95); // 10 fps is reported as 10, not capped at 20
+});
