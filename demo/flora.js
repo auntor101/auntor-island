@@ -45,9 +45,9 @@ function palette(hours) { // the same maths as main.js applyPalette
 // yaw 0 looks north (-z); AT(x, z, metres above the ground, yawDeg, pitchDeg)
 const AT = (x, z, up, yaw, pitch) => [x, heightAt(x, z) + up, z, yaw, pitch];
 const VIEWS = {
-  meadow: AT(-62, 66, 1.5, 25, -14), meadowclose: AT(-58, 60, 0.7, 30, -22), forest: AT(-62, 90, 2.4, 160, -6), grove: AT(-62, -26, 2.2, 90, -5), groveclose: AT(-72, -34, 1.0, 70, -14),
-  beach: AT(-80, 104, 2.4, -150, -6), mountain: AT(-128, 18, 5, 70, 4), volcano: AT(60, 4, 6, -78, 0), lake: AT(0, 92, 2, 180, -4),
-  aerial: [0, 190, 120, 0, -52], autumn: AT(-110, 20, 3, 95, -3), spring: AT(70, -85, 3, 180, -4), village: AT(8, 20, 2, 0, -3),
+  meadow: AT(59, 65, 1.6, 200, -12), meadowclose: AT(59, 65, 0.7, 200, -20), forest: AT(-91, 75, 2.2, 110, -4), grove: AT(-69, -31, 2.0, 120, -5), groveclose: AT(-69, -31, 0.9, 120, -16),
+  beach: AT(-80, 104, 2.4, -150, -6), mountain: AT(-115, 29, 4, 80, 6), volcano: AT(60, 4, 6, -78, 0), lake: AT(0, 92, 2, 180, -4),
+  aerial: [0, 190, 120, 0, -52], autumn: AT(-45, 43, 2.2, 100, -6), spring: AT(49, -53, 2.2, 190, -6), village: AT(8, 20, 2, 0, -3),
 };
 const cam = q.get('pose') ? q.get('pose').split(',').map(Number) : VIEWS[q.get('cam') || 'meadow'];
 let [x, y, z, yaw, pitch] = cam; yaw = yaw * Math.PI / 180; pitch = pitch * Math.PI / 180;
@@ -68,7 +68,8 @@ startLoop((dt, now, rawMs) => {
   player.set(px, heightAt(px, pz), pz);
   snowK += ((snowOn ? 1 : 0) - snowK) * Math.min(1, dt * 1.2);
   const { day, base } = palette(hours);
-  scene.fog.near = 80 * (1 - 0.4 * snowK); scene.fog.far = 260 * (1 - 0.35 * snowK);
+  const alt = Math.max(0, cp.y - heightAt(cp.x, cp.z)); // lift the fog when flying high, as main.js does
+  scene.fog.near = 80 * (1 - 0.4 * snowK) + 2 * alt; scene.fog.far = 260 * (1 - 0.35 * snowK) + 3 * alt;
   stars.points.position.copy(cp); moon.group.position.copy(cp);
   stars.update(now / 1000, base.stars, 1); moon.update(hours, 0.5, base.moon);
   snow.update(now / 1000, snowK, 1, tmp.set('#8fa4d8').lerp(WHITE, day));

@@ -18,9 +18,9 @@ const LODS = {
   tree: [{ d: 20, pools: ['tree_a', 'tree_b', 'tree_c'] }, { d: 82, pools: ['tree_l1'] }, { d: 232, pools: ['tree_l2'], thin: [125, 0.6, 1.22] }],
   pine: [{ d: 26, pools: ['pine_a', 'pine_b'] }, { d: 85, pools: ['pine_l1'] }, { d: 232, pools: ['pine_l2'], thin: [125, 0.6, 1.2] }],
   dead: [{ d: 55, pools: ['dead'] }, { d: 232, pools: ['dead_l2'] }],
-  bush: [{ d: 42, pools: ['bush'] }], rock: [{ d: 120, pools: ['rock_a', 'rock_b', 'rock_c'] }],
+  bush: [{ d: 32, pools: ['bush'] }], rock: [{ d: 120, pools: ['rock_a', 'rock_b', 'rock_c'] }],
   fern: [{ d: 34, pools: ['fern'] }], mushroom: [{ d: 30, pools: ['mushroom'] }],
-  grass: [{ d: 40, pools: ['grass'] }], tall: [{ d: 40, pools: ['tall'] }], reed: [{ d: 40, pools: ['reed'] }], flower: [{ d: 38, pools: ['flower'] }],
+  grass: [{ d: 35, pools: ['grass'] }], tall: [{ d: 36, pools: ['tall'] }], reed: [{ d: 38, pools: ['reed'] }], flower: [{ d: 34, pools: ['flower'] }],
   driftwood: [{ d: 70, pools: ['driftwood'] }], shell: [{ d: 30, pools: ['shell'] }],
 };
 const CAP = { tree_a: 90, tree_b: 90, tree_c: 90, tree_l1: 700, tree_l2: 1500, pine_a: 80, pine_b: 80, pine_l1: 500, pine_l2: 700, dead: 60, dead_l2: 150, bush: 450, rock_a: 150, rock_b: 150, rock_c: 150, fern: 700, mushroom: 150, grass: 9000, tall: 3500, reed: 2500, flower: 5000, driftwood: 40, shell: 300 };
@@ -68,7 +68,7 @@ export function createFlora(scene, { heightAt, zoneAt, isWet, getSeason, assetBa
   mats.grass = grassMaterial(U); mats.tall = grassMaterial(U, { mul: [1.12, 1.06, 0.9], sway: 1.25 }); mats.reed = grassMaterial(U, { mul: [0.78, 0.9, 0.8], sway: 0.7 });
   mats.flower = flowerMaterial(U);
   const addPool = (name, geo, mat) => { pools[name] = new Pool(scene, geo, mat, CAP[name]); };
-  addPool('grass', grassClump({ blades: 8, height: [0.3, 0.62], width: 0.05, radius: 0.26, seed: 3 }), mats.grass);
+  addPool('grass', grassClump({ blades: 7, height: [0.3, 0.62], width: 0.055, radius: 0.26, seed: 3 }), mats.grass);
   addPool('tall', grassClump({ blades: 6, height: [0.7, 1.2], width: 0.04, radius: 0.32, lean: 0.4, seed: 8 }), mats.tall);
   addPool('reed', reedClump(), mats.reed);
   addPool('flower', flower(), mats.flower);

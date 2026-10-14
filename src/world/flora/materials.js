@@ -5,7 +5,7 @@ import { ShaderMaterial, UniformsLib, Color, Vector3, Vector4, DoubleSide, Addit
 export function createUniforms() {
   return {
     uTime: { value: 0 }, uLightDir: { value: new Vector3(0, 1, 0) }, uSun: { value: new Color() }, uAmb: { value: new Color() },
-    uSnow: { value: 0 }, uForce: { value: -1 }, uNight: { value: 0 }, uPlayer: { value: new Vector4(0, -999, 0, 1.4) }, uRange: { value: 40 }, uWind: { value: 1 },
+    uSnow: { value: 0 }, uForce: { value: -1 }, uNight: { value: 0 }, uPlayer: { value: new Vector4(0, -999, 0, 1.4) }, uRange: { value: 35 }, uWind: { value: 1 },
   };
 }
 
@@ -13,12 +13,12 @@ const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
 const glsl = (h) => 'pow(vec3(' + hex(h).map((v) => v.toFixed(3)).join(',') + '),vec3(2.2))'; // sRGB -> linear, built-ins only so it can sit in a const
 // [shadow, mid, light] x two variants per season: summer, autumn, spring blossom, grove blossom
 const LEAF = [
-  ['#1c5a2e', '#3f9c3a', '#a4d84e', '#1f5a3a', '#4aa84a', '#c8e66a'],
-  ['#8c3a1c', '#e8861e', '#ffd24c', '#6e1e22', '#c8402c', '#f48c3a'],
-  ['#c8709a', '#f6a6c6', '#ffe6f0', '#d99ac0', '#fbc6dc', '#fff4f8'],
-  ['#c79ad2', '#fbcfe6', '#ffffff', '#a99ae0', '#e4c4ff', '#fff8ff'],
+  ['#2a7a3c', '#47a83e', '#a8dc52', '#2a6e48', '#56b452', '#cde870'],
+  ['#a04a20', '#ec8c22', '#ffd650', '#822a28', '#d24a30', '#f89440'],
+  ['#dc86ae', '#f8b0cc', '#ffe8f2', '#e4a4c4', '#fbcade', '#fff4f8'],
+  ['#e69cc0', '#fcc8de', '#ffffff', '#d2a8dc', '#f6d2ee', '#fff8fe'],
 ];
-const GRASS = [['#1f6026', '#8cd24c'], ['#3f5a1c', '#c4b444'], ['#2b7c36', '#bce86e'], ['#1c6c5c', '#8ee4aa']];
+const GRASS = [['#1f6026', '#8cd24c'], ['#3f5a1c', '#c4b444'], ['#2b7c36', '#bce86e'], ['#2a7c4c', '#a8f0b0']];
 const FLOWER = ['#fff4dc', '#ffd23a', '#ff7fb0', '#a284ff', '#ff6a44', '#62a8ff', '#8affe4'];
 const arr = (list) => 'vec3[' + list.length + '](' + list.map(glsl).join(',') + ')';
 
@@ -91,8 +91,8 @@ export function foliageMaterial(shared, { map, atlas = false, recolor = false, r
           int s = int(sea + .5) * 6 + (fract(vSeed * 7.31) > .5 ? 3 : 0);
           float tl = .40 + .26 * N.y + .45 * (vC.g - .75) + .12 * (fract(vSeed * 13.7) - .5) + .14 * (1. - smoothstep(.5, .95, t.a));
           float b = (smoothstep(.30, .34, tl) + smoothstep(.55, .59, tl)) * .5;
-          alb = ramp(s, b);
-          alb = mix(alb, alb * vec3(.82, .88, 1.12), 1. - band);   // cool shade
+          alb = ramp(s, b) * .82;
+          alb = mix(alb, alb * vec3(.86, .92, 1.08), (1. - band) * (sea < 1.5 ? 1. : .35));   // cool shade (blossom stays pink)
         }
         #endif
         #ifdef ROCK
@@ -100,7 +100,7 @@ export function foliageMaterial(shared, { map, atlas = false, recolor = false, r
           alb *= .92 + .12 * N.y;
         #endif
         alb = mix(alb, S(vec3(.93, .96, 1.)), uSnow * smoothstep(.1, .55, N.y) * (leaf ? 1. : .6)); // snow dusting on upward faces
-        vec3 lit = uAmb * (.7 + .3 * (N.y * .5 + .5)) * .8 + uSun * (.8 * band);
+        vec3 lit = uAmb * (.8 + .2 * (N.y * .5 + .5)) * .95 + uSun * (.8 * band);
         vec3 col = alb * lit;
         col += uSun * pow(1. - max(dot(N, V), 0.), 3.) * smoothstep(-.2, .4, nd) * (leaf ? .13 : .04); // rim
         gl_FragColor = vec4(min(col, vec3(.85)), 1.);
