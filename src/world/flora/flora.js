@@ -11,7 +11,7 @@ import { chunksAround, chunkKey, CHUNK } from '../chunks.js';
 import { chunkField, placeChunk, seasonAt, STRIDE } from './placement.js';
 import { TIER_RANGE } from './species.js';
 import { createUniforms, foliageMaterial, grassMaterial, flowerMaterial, petalMaterial } from './materials.js';
-import { grassClump, reedClump, flower, treeFar, pineFar, deadFar, driftwood, shell } from './geometry.js';
+import { grassClump, reedClump, flower, treeFar, pineFar, deadFar, driftwood, shell, withCrown } from './geometry.js';
 
 // distance bands per species: first band whose range covers the instance wins; `thin` = [from, keep fraction, scale boost] for far trees
 const LODS = {
@@ -90,10 +90,10 @@ export function createFlora(scene, { heightAt, zoneAt, isWet, getSeason, assetBa
     const T = {}; await Promise.all(Object.keys(man.tex).map(async (k) => { T[k] = await tex(k); if (T[k]) disposables.push(T[k]); }));
     const mk = (key, opts) => { if (!mats[key] && T[opts.map]) mats[key] = foliageMaterial(U, { ...opts, map: T[opts.map] }); return mats[key]; };
     const jobs = [];
-    const job = async (name, file, key, opts) => { const g = await model(file); const m = mk(key, opts); if (g && m) addPool(name, g, m); };
+    const job = async (name, file, key, opts, wrap) => { let g = await model(file); const m = mk(key, opts); if (g && m) addPool(name, wrap ? wrap(g) : g, m); };
     const treeOpt = { map: 'tree_atlas', atlas: true, recolor: true }, pineOpt = { map: 'pine_atlas', atlas: true, sway: 0.6 };
     for (const v of ['tree_a', 'tree_b', 'tree_c']) jobs.push(job(v, v, 'tree', treeOpt));
-    jobs.push(job('tree_l1', 'tree_l1', 'tree', treeOpt));
+    jobs.push(job('tree_l1', 'tree_l1', 'tree', treeOpt, withCrown));
     jobs.push(job('pine_a', 'pine_a', 'pine', pineOpt), job('pine_b', 'pine_b', 'pine', pineOpt), job('pine_l1', 'pine_l1', 'pine', pineOpt));
     jobs.push(job('dead', 'dead', 'dead', { map: 'Bark_DeadTree', sway: 0 }), job('bush', 'bush', 'bush', { map: 'Leaves_TwistedTree', recolor: true, sway: 0.5 }), job('fern', 'fern', 'fern', { map: 'Leaves', recolor: true, sway: 0.3 }));
     jobs.push(job('mushroom', 'shroom', 'shroom', { map: 'Mushrooms', sway: 0 }));

@@ -161,7 +161,7 @@ for (const [name, [kit, atlas, kind]] of Object.entries(MODELS)) {
   loaded[name] = m;
   write(name, m);
 }
-write('tree_l1', lod1(loaded.tree_c, 8, 1.9));
+write('tree_l1', lod1(loaded.tree_c, 16, 1.9));
 write('pine_l1', lod1(loaded.pine_b, 6, 1.7));
 
 // textures: two atlases (bark | leaves) and one image per single-material model

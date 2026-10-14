@@ -95,6 +95,9 @@ export function foliageMaterial(shared, { map, atlas = false, recolor = false, r
           alb = mix(alb, alb * vec3(.86, .92, 1.08), (1. - band) * (sea < 1.5 ? 1. : .35));   // cool shade (blossom stays pink)
         }
         #endif
+        #ifndef RECOLOR
+          if (leaf) alb *= vec3(1.9, 2.0, 1.7);   // pine needles: the painted texture is dark, lift it
+        #endif
         #ifdef ROCK
           alb = mix(alb, alb * vec3(.5, .38, .4), vSea);          // ember rock on the volcano
           alb *= .92 + .12 * N.y;

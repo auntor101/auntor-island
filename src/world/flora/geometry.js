@@ -99,10 +99,22 @@ function prism(b, sides, y0, y1, r0, r1, cx = 0, cz = 0, uvb = BARK_UV) {
   const a = ring(y0, r0), c = ring(y1, r1);
   for (let s = 0; s < sides; s++) { const t = (s + 1) % sides; b.quad(a[s], a[t], c[s], c[t]); }
 }
+function crown(b) {
+  blob(b, 0, 6.1, 0, 3.4, 2.9, 3.4, 1); blob(b, 1.9, 4.9, 0.9, 2.3, 2, 2.3, 2); blob(b, -1.8, 5.3, -1.1, 2.4, 2.1, 2.4, 3); blob(b, 0.2, 8.0, -0.2, 2.0, 1.7, 2.0, 4, LEAF_UV, 1);
+}
 export function treeFar() { // about 90 triangles
   const b = new Builder();
   prism(b, 4, -0.2, 4.2, 0.42, 0.22);
-  blob(b, 0, 6.1, 0, 3.4, 2.9, 3.4, 1); blob(b, 1.9, 4.9, 0.9, 2.3, 2, 2.3, 2); blob(b, -1.8, 5.3, -1.1, 2.4, 2.1, 2.4, 3); blob(b, 0.2, 8.0, -0.2, 2.0, 1.7, 2.0, 4, LEAF_UV, 1);
+  crown(b);
+  return b.build();
+}
+// Mid-distance tree: the loaded card crown (a few enlarged leaf cards plus trunk) with the lumpy blobs behind it for mass.
+export function withCrown(cards) {
+  const b = new Builder(), p = cards.attributes.position, n = cards.attributes.normal, u = cards.attributes.uv, c = cards.attributes.color;
+  for (let i = 0; i < p.count; i++) b.v([p.getX(i), p.getY(i), p.getZ(i)], [n.getX(i), n.getY(i), n.getZ(i)], [u.getX(i), u.getY(i)], [c.getX(i), c.getY(i), c.getZ(i), 1]);
+  for (const i of cards.index.array) b.I.push(i);
+  const before = b.P.length / 3; crown(b);
+  void before;
   return b.build();
 }
 const PINE_UV = enc(0.5, 0.5);
