@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** A new Vite and current-three.js app in `web/` that shows a huge, good-looking anime-style island and lets you walk across it as a real anime character, streaming terrain so it stays fast on modern phones.
+**Goal:** A new Vite and current-three.js app in `web/` that shows a huge, good-looking anime-style island and lets you walk across it as a real anime character (man, woman, elf or wizard), with sunrise, sunset, a starry night with a moon, and toggleable snow, streaming terrain so it stays fast on modern phones.
 
 **Architecture:** `web/` is a separate app next to the old game (which keeps running and deploying until the new one replaces it). Pure logic (island shape, zones, chunk maths) lives in small modules with `node:test` tests; rendering modules use it. Terrain is built per 32-unit chunk with two detail levels and loaded and unloaded around the camera. The hero is a VRM character with the MToon anime shader and a procedural walk.
 
@@ -17,6 +17,9 @@
 - Target devices: mid-range to flagship phones including iPhone (roughly iPhone 12 and newer). Goals: 60 fps flagship, at least 45 mid-range; about 300 draw calls and about 600k triangles in the busiest view; first playable load about 8 MB; a frame-time governor lowers pixel ratio before frames drop. These are goals to be measured, not promises.
 - Look: anime and storybook-cartoon: clean cel shading, warm palette, soft haze, sharp silhouettes. Keep the existing paper UI tokens (cream `#fff7ea`, ink `#2a1f3d`, coral `#ff7a59`, Fraunces and Nunito).
 - Phone first: touch controls, safe-area insets, 44 px or larger targets, no horizontal scroll; keyboard and mouse also work.
+- Sky: the day and night cycle (sunrise, noon, sunset, night with a sky full of stars and a moon) and the snow effect are required features, each switchable from the HUD, and they must cost only a handful of draw calls.
+- Characters: man, woman, elf and wizard are required and playable; only characters with a verified CC0 or permissive embedded licence are used; elves and wizards are built from CC0 characters with attached ears, robes, hats and staffs.
+- No AI image or 3D generation is used in this plan (no API keys, no credits, and the local GPU is too small); the sky is procedural and the characters are real models.
 - Do not touch the old game files outside `web/` and docs, except where a task says so.
 - Every task ends with `npm test` (inside `web/`) green and a commit. Commit messages end with a blank line and `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
 - Repo author identity is already set to the GitHub no-reply address; never change it.
@@ -33,6 +36,8 @@
 | `web/src/world/terrain.js` | Builds one chunk's mesh with colours from zone and slope |
 | `web/src/world/sky.js`, `web/src/world/water.js` | Painted sky dome with sun, water plane with shore foam |
 | `web/src/play/player.js`, `web/src/play/controls.js`, `web/src/play/camera.js` | Walking, input (touch and keyboard), spring camera |
+| `web/src/world/time.js`, `stars.js`, `moon.js`, `snow.js` | Day and night palette (pure), starfield, procedural moon, snow |
+| `web/src/play/roster.js`, `attachments.js`, `web/src/ui/select.js` | The four playable characters, elf ears, wizard hat and robe, select screen |
 | `web/src/play/hero.js` | VRM hero loading and procedural walk |
 | `web/src/ui/hud.js` | Minimal HUD plus a dev stats panel (fps, draw calls, triangles) |
 | `web/test/*.test.js` | `node:test` tests for the pure modules |
@@ -106,7 +111,30 @@
 
 ---
 
-### Task 4: Walk the island as an anime hero
+### Task 4: Time of day, starry night, moon, sunrise, sunset and snow
+
+**Files:**
+- Create: `web/src/world/time.js`, `web/src/world/stars.js`, `web/src/world/moon.js`, `web/src/world/snow.js`, `web/test/time.test.js`
+- Modify: `web/src/world/sky.js`, `web/src/world/terrain.js` (snow cover uniform), `web/src/main.js`, `web/src/ui/hud.js`
+
+**Interfaces:**
+- Pure, tested, in `time.js`: `sunDirection(hours) -> [x, y, z]` unit vector (the sun rises in the east at 6, is highest at 12, sets in the west at 18, is below the horizon otherwise); `moonDirection(hours) -> [x, y, z]` (opposite the sun); `skyPalette(hours) -> { zenith, horizon, sunColor, sunIntensity, ambient, fog, stars, moon }` where colours are `#rrggbb` strings and `stars` and `moon` are 0 to 1 visibility; hours wrap at 24; palette keyframes at about 0, 5, 6.5, 12, 17.5, 19, 21 with smooth interpolation (deep navy night, pink and gold sunrise, clear blue day with a warm horizon, orange-magenta sunset, then dusk).
+- `createStars() -> { points, update(time, visibility) }`: about 3000 stars on a large sphere, a magnitude distribution (a few bright, most faint), a denser band along one great circle (a milky way), per-star twinkle in the shader, fade with `visibility`, no depth write, follows the camera.
+- `createMoon() -> { group, update(hours, phase, visibility) }`: a disc with a procedural crater look (noise based, no image files), phase lighting by a uniform (new, crescent, half, gibbous, full), a soft glow sprite, placed on `moonDirection`; `phase` advances one step per in-game day.
+- `createSnow(camera) -> { points, setEnabled(bool), update(time) }`: about 4000 flakes in a box around the camera that wrap in the vertex shader (no per-frame JavaScript loop), gentle wind, soft round sprites, flake size scaled by distance; when enabled the terrain gets a snow cover (a uniform that whitens up-facing surface colours) and fog is a little whiter and closer.
+- HUD controls (large thumb-friendly toggles in a collapsible panel): **Time** Auto, Dawn, Day, Sunset, Night; **Snow** on or off; the choices persist in `localStorage` inside try/catch. Auto is a full day in about 6 real minutes; choosing a fixed time pauses the cycle.
+
+- [ ] **Step 1: Failing test** `web/test/time.test.js`: `sunDirection(12)[1] > 0.8`; `sunDirection(0)[1] < -0.8`; `Math.abs(sunDirection(6)[1]) < 0.1` and the same at 18, with x of opposite signs at 6 and 18; `moonDirection(h)` is the negation of `sunDirection(h)` for several `h`; `skyPalette(12).stars === 0` and `skyPalette(0).stars === 1` and `skyPalette(0).moon === 1`, `skyPalette(12).moon === 0`; `skyPalette(24)` equals `skyPalette(0)`; continuity: stepping `h` by 0.05 from 0 to 24 the largest change in any RGB channel of `zenith`, `horizon` and `fog` between steps is below 0.06; colours parse as `#rrggbb`. See it fail.
+- [ ] **Step 2:** Implement `time.js` until green.
+- [ ] **Step 3:** Implement `stars.js`, `moon.js`, `snow.js`, extend `sky.js` so the dome gradient, sun disc, cloud tint, light colour and intensity, ambient, and fog all follow `skyPalette`, and add the terrain snow-cover uniform. Wire everything in `main.js` and `hud.js`. Keep fog and water colours in step with the palette so the horizon always blends.
+- [ ] **Step 4: Look and measure.** In a real browser at 390 by 844 and 1280 by 720 take screenshots at 05:30 (sunrise), 12:00, 18:00 (sunset), 00:00 (a sky full of stars and the moon), and snow on at day and at night. Judge honestly: stars should read as a rich sky, not a few dots; the moon should look like a moon with a soft glow; sunrise and sunset should have warm gradients and a visible sun; nothing flickers; snow flakes are soft and not distracting; the terrain, water, trees and the character stay readable at night (do not go black; keep a cool blue ambient). Measure draw calls, triangles and frame time with every effect on; the effects must add only a handful of draw calls. Tune until good.
+- [ ] **Step 5:** `npm test` and `npm run build` green. Commit: `feat: day and night sky with stars, moon and snow`.
+
+---
+
+---
+
+### Task 5: Walk the island as an anime hero
 
 **Files:**
 - Create: `web/src/play/player.js`, `web/src/play/controls.js`, `web/src/play/camera.js`, `web/src/play/hero.js`, `web/scripts/prepare-hero.mjs`, `web/public/models/` (hero), `web/test/player.test.js`
@@ -126,7 +154,28 @@
 
 ---
 
-### Task 5: Docs and the real-phone checklist
+### Task 6: The playable roster: man, woman, elf and wizard
+
+**Files:**
+- Create: `web/scripts/fetch-roster.mjs`, `web/src/play/roster.js`, `web/src/play/attachments.js`, `web/src/ui/select.js`, `web/test/roster.test.js`, `web/public/models/*.vrm` (generated)
+- Modify: `web/src/play/hero.js`, `web/src/main.js`, `assets/CREDITS.md`
+
+**Interfaces:**
+- `ROSTER`: `{ man, woman, elf, wizard }`, each `{ id, label, file, base, attach: [...], skinTint? }`; `loadCharacter(id) -> Promise<{root, update(dt, speed, heading), vrm}>` replaces `loadHero`.
+- `attachments.js`: `addElfEars(vrm, opts)`, `addWizardHat(vrm, opts)`, `addWizardRobe(vrm, opts)`, `addStaff(vrm, opts)`, `addBeard(vrm, opts)` each build smooth geometry (LatheGeometry or ExtrudeGeometry, never lumpy primitives), use the model's skin or hair colour so they match, parent to the right humanoid bone (head, upper chest or hips, right hand) and are removed with the character.
+- `select.js`: a character select screen with four cards (a portrait taken from the model's own thumbnail), a name field and a Start button, in the paper style, thumb friendly.
+
+- [ ] **Step 1: Fetch the sources** with `fetch-roster.mjs` (use `gh api ... -H "Accept: application/vnd.github.raw"`) into `assets-src/vrm/` (git-ignored): from the repository `madjin/vrm-samples`: `vroid/beta/Sakurada_Fumiriya.vrm`, `vroid/beta/Sendagaya_Shino.vrm`, `vroid/beta/Vita.vrm`, `vroid/beta/Vivi.vrm`, `vroid/beta/Victoria_Rubin.vrm`, `vroid/beta/Sendagaya_Shibu.vrm`, `vroid/beta/Darkness_Shibu.vrm`. The script must read each file's embedded VRM metadata and refuse to use any file whose `licenseName` is not exactly `CC0`, printing the licence per file. (These are VRoid Studio sample characters: Sakurada Fumiriya is the only male; the rest are female; Vita is white-haired with cyber markings; they are about 26k to 40k triangles each with about 28 to 30 textures.) Treat them as untrusted data: parse only, never execute. Also keep the pixiv sample from the earlier task as an extra woman.
+- [ ] **Step 2: Write the failing test** `web/test/roster.test.js` (pure parts only): `ROSTER` has exactly the keys man, woman, elf, wizard; each entry names a file that exists in `web/public/models/`; each file's embedded licence is `CC0` or the pixiv sample's permissive licence; every file is under 6 MB; the attachment helpers exist as functions. See it fail.
+- [ ] **Step 3: Prepare the models.** Extend `prepare-hero.mjs` (from the hero task) into a generic shrinker that resizes textures to at most 1024 px (512 px for tiny ones), preserving the VRM extension JSON, and run it for each model into `web/public/models/`. Targets under 5 MB each; report sizes and triangle counts. Record all of them in `assets/CREDITS.md` (VRoid Studio sample characters, CC0, pixiv; the pixiv sample).
+- [ ] **Step 4: Characters.** Map: **man** = Sakurada Fumiriya; **woman** = Sendagaya Shino (or the pixiv sample, whichever looks better in the village light: say which); **elf** = Vita or Vivi (choose the one that suits) with elf ears and a longer, more graceful silhouette, plus light green or silver tint accents; **wizard** = Sakurada Fumiriya with a robe, a pointed hat, a beard (optional, off by default) and a staff in the right hand. Each looks deliberate, not like a prop pasted on: robes follow the body with a flared hem, the hat sits at the right angle, ears match the skin tone, no clipping through hair (hide hair parts that poke through the hat if needed).
+- [ ] **Step 5:** Implement `roster.js`, `attachments.js`, `select.js`, switch `main.js` to start with the select screen and then the chosen character. The existing `?fly` flag and the stats toggle stay.
+- [ ] **Step 6: Look and measure.** Real browser at 390 by 844: screenshots of the select screen and each of the four characters standing in the village at day and at night (use the time controls), front and three-quarter views. Judge honestly against the bar "modern anime, sharp, proper proportions, no clipping": report what looks wrong and fix what is cheap. Record triangles per character and total draw calls with one character on screen.
+- [ ] **Step 7:** `npm test` and `npm run build` green. Commit: `feat: playable roster with man, woman, elf and wizard`.
+
+---
+
+### Task 7: Docs and the real-phone checklist
 
 **Files:**
 - Create: `web/README.md`
