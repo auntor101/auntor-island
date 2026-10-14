@@ -67,7 +67,7 @@ const node = (f, x, z) => {
 function heightBilinear(f, x, z) {
   const fx = (x - f.x0) / STEP + M, fz = (z - f.z0) / STEP + M, i = Math.min(N - 2, Math.max(0, Math.floor(fx))), j = Math.min(N - 2, Math.max(0, Math.floor(fz)));
   const tx = Math.min(1, Math.max(0, fx - i)), tz = Math.min(1, Math.max(0, fz - j)), a = f.h[j * N + i], b = f.h[j * N + i + 1], c = f.h[(j + 1) * N + i], d = f.h[(j + 1) * N + i + 1];
-  if (Math.max(a, b, c, d) - Math.min(a, b, c, d) > 0.4) return NaN; // too bumpy for a bilinear patch: the caller asks heightAt
+  if (Math.max(a, b, c, d) - Math.min(a, b, c, d) > 0.2) return NaN; // too bumpy for a bilinear patch: the caller asks heightAt
   return a + (b - a) * tx + (c - a) * tz + (a - b - c + d) * tx * tz;
 }
 
@@ -119,7 +119,7 @@ export function placeChunk(f, env, tier) {
       if (s.id === 'grass' && env.keepOut && env.keepOut(c.x, c.z, 0.2, 'grass')) continue;
       // exact water check for anything near the shore (lattice only knows 2 m nodes)
       const m = s.water >= 2 ? 2.4 : s.nearWater ? 0 : 0.5;
-      if (f.wetD[c.k] < 2 || !s.noY) {
+      if (f.wetD[c.k] < 3 || !s.noY) {
         if (env.isWet(c.x, c.z)) continue;
         if (m > 0 && ring.some(([a, b]) => env.isWet(c.x + a * m, c.z + b * m))) continue;
       }

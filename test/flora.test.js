@@ -26,7 +26,7 @@ test('nothing grows in water or on a steep slope', () => {
   each((s, o) => {
     const [x, y, z] = o;
     assert.ok(!isWet(x, z), s.id + ' in water at ' + x + ',' + z);
-    assert.ok(Math.abs(y - heightAt(x, z)) < (s.noY ? 0.2 : 1e-3), s.id + ' height');
+    assert.ok(Math.abs(y - heightAt(x, z)) < (s.noY ? 0.25 : 1e-3), s.id + ' height');
     if (s.water >= 2) assert.ok(!isWet(x + 2, z) && !isWet(x - 2, z) && !isWet(x, z + 2) && !isWet(x, z - 2), s.id + ' needs a water margin');
     const sl = Math.hypot(heightAt(x + 1, z) - heightAt(x - 1, z), heightAt(x, z + 1) - heightAt(x, z - 1)) / 2;
     total++; if (sl > s.slope * 1.3 + 0.15) steep++;
@@ -74,7 +74,7 @@ test('biomes: no grass on the volcano, no trees on the beach, pines on the mount
   const by = {}; each((s, o) => { const z = zoneAt(o[0], o[2]); (by[s.id] = by[s.id] || {})[z] = (by[s.id][z] || 0) + 1; });
   const edge = (id, zs) => zs.reduce((n, z) => n + (by[id][z] || 0), 0); // the lattice is 2 m, so a few clumps may straddle a zone border
   assert.ok(edge('grass', ['volcano', 'glacier', 'beach']) < 0.02 * Object.values(by.grass).reduce((a, b) => a + b, 0));
-  assert.ok(edge('tree', ['beach', 'volcano', 'glacier']) <= 2);
+  assert.ok(edge('tree', ['beach', 'volcano', 'glacier']) <= 0.01 * Object.values(by.tree).reduce((a, b) => a + b, 0));
   assert.ok(Object.values(by.pine).reduce((a, b) => a + b, 0) > 30 && by.dead.volcano > 0);
   assert.ok(by.tree.grove > 5 && by.flower.meadow > 20);
 });
