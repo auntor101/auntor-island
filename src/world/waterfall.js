@@ -38,7 +38,7 @@ export function createWaterfall(S, info) {
         float s = a * .6 + b * .4;
         vec3 col = mix(vec3(.45, .78, .95), vec3(.8, .94, 1.), smoothstep(.35, .65, s));    // two cel tones
         col = mix(col, vec3(1.), step(.66, s) * .85) * clamp(uLight * 1.25, 0., 1.2);       // bright streak highlights
-        float sp = step(.93, hash(floor(vec2(u * 38., v * 26. - t * 22.)))) * uDay;          // sun glimmer
+        float sp = step(.93, hash(floor(vec2(u * 60., v * 9. - t * 14.)))) * uDay;          // sun glimmer
         col += uLCol * sp * 1.3;
         col = mix(col, uFoam, smoothstep(.82, 1., v) + (1. - smoothstep(0., .05, v)));       // lip and plunge foam
         float eu = min(u, 1. - u), edge = smoothstep(0., .12 + .1 * noise(vec2(v * 9. - t * 3., u * 4.)), eu);
@@ -60,14 +60,14 @@ export function createWaterfall(S, info) {
         vec3 c = uBase;
         c.xz += vec2(-uDir.y, uDir.x) * (aSeed.z - .5) * uW * 1.5 + uDir * (aSeed.w * 1.6 - .3) * (.4 + ph) + uWind * ph * ph * 5.;
         c.y += .2 + ph * (2.2 + aSeed.x * 3.);
-        vec4 mv = viewMatrix * vec4(c, 1.); mv.xy += position.xy * (1.2 + aSeed.w * 1.6) * (.5 + ph * 1.4);
+        vec4 mv = viewMatrix * vec4(c, 1.); mv.xy += position.xy * (.7 + aSeed.w * 1.0) * (.5 + ph * 1.2);
         gl_Position = projectionMatrix * mv; vUv = position.xy * 2.; vA = sin(3.14159 * ph);
       }`,
     fragmentShader: `
       uniform vec3 uLight, uHorizon; varying vec2 vUv; varying float vA;
       void main(){
         float d = length(vUv);
-        gl_FragColor = vec4(mix(vec3(1.), uHorizon, .15) * clamp(uLight * 1.4 + .1, 0., 1.), vA * (smoothstep(1., .75, d) * .3 + smoothstep(.55, .4, d) * .18));
+        gl_FragColor = vec4(mix(vec3(1.), uHorizon, .15) * clamp(uLight * 1.4 + .1, 0., 1.), vA * (smoothstep(1., .3, d) * .22));
       }`,
   }));
   spray.frustumCulled = false; spray.renderOrder = 3;

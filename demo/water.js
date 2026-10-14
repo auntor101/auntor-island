@@ -30,7 +30,7 @@ function carve(h, x, z) {
   RIVERS.forEach((r, i) => {
     const { d, S } = riverAt(r, i, x, z), w = hw(r), cut = 1 - sm(w + 1, w + 8, d);
     if (cut <= 0) return;
-    h += ((d < w ? S - 1.1 * (1 - (d / w) ** 2) : S + (d - w) * 0.3) - h) * cut;
+    h = Math.min(h, h + ((d < w ? S - 1.1 * (1 - (d / w) ** 2) : S + (d - w) * 0.3) - h) * cut);
   });
   return h;
 }
@@ -97,7 +97,8 @@ let coast = [0, 0];
 for (let r = 60; r < 260; r += 1) { const x = -Math.cos(0.74) * r, z = Math.sin(0.74) * r; if (testH(x, z) < 0.3) { coast = [x, z]; break; } }
 const VIEWS = {
   sea: { p: [0, 5, 140, 90, -3], r: [-20, 130] },
-  shore: { p: [coast[0] + 5, testH(coast[0] + 5, coast[1] + 3) + 1.6, coast[1] + 3, 40, -9], r: [coast[0] - 3, coast[1] - 3] },
+  shore: { p: [coast[0] + 3, testH(coast[0] + 3, coast[1] - 3) + 1.3, coast[1] - 3, 132, -7], r: [coast[0] - 6, coast[1] + 5] },
+  moon: { p: [0, 5, 140, -90, 26], r: [20, 120] },
   lake: { p: [-5, 6.5, -10, 0, -3], r: [-5, -30] },
   aerial: { p: [-5, 95, 40, 0, -52], r: [-5, -42] },
   falls: { p: [-8, 9, -52, 0, 4], r: [-7, -58] },

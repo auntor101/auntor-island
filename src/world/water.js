@@ -1,4 +1,4 @@
-import { Mesh, Group, BufferGeometry, BufferAttribute, ShaderMaterial, UniformsUtils, UniformsLib, DataTexture, RedFormat, HalfFloatType, UnsignedByteType, DataUtils, LinearFilter, ClampToEdgeWrapping, RepeatWrapping, Color, Vector3, CatmullRomCurve3 } from 'three';
+import { Mesh, Group, BufferGeometry, BufferAttribute, ShaderMaterial, UniformsUtils, UniformsLib, DataTexture, RedFormat, HalfFloatType, UnsignedByteType, DataUtils, LinearFilter, ClampToEdgeWrapping, RepeatWrapping, Color, Vector3, Vector4, CatmullRomCurve3 } from 'three';
 import { heightAt, waterSurfaceAt, LAKE, RIVERS, FALLS } from './island.js';
 import { createRipples, RIPPLE_GLSL } from './ripples.js';
 import { createWaterfall, fallInfo, NOISE_GLSL } from './waterfall.js';
@@ -106,7 +106,7 @@ void main(){
     gw(w.xz, normalize(vec2(-.4, .9)), 23., .18, .7, damp, o, g);
     gw(w.xz, normalize(vec2(.9, -.4)), 11., .07, .6, damp, o, g);
     gw(w.xz, normalize(vec2(.15, 1.)), 5.2, .03, .5, damp, o, g);
-    w.xyz += o; w.y += .08 + (1. - damp) * .06 * sin(uTime * .9 + w.x * .05 + w.z * .04); // shallows breathe: the thin wet film on the beach
+    w.xyz += o; w.y += .04 + (1. - damp) * .03 * sin(uTime * .9 + w.x * .05 + w.z * .04); // shallows breathe: the thin wet film on the beach
     vN = normalize(vec3(-g.x, max(1. - g.y, .2), -g.z)); vWave = clamp(o.y / .6, -1., 1.);
   #else
     vDepth = aDepth; vSlope = aSlope; vFlow = aFlow; vDir = aDir; vN = vec3(0., 1., 0.); vWave = 0.;
@@ -119,7 +119,7 @@ void main(){
 const FRAG = `
 #include <fog_pars_fragment>
 ${COMMON}
-uniform float uTime, uDay, uStars, uSnow; uniform vec3 uLight, uFoam, uLCol, uSunRaw, uSunDir, uLDir, uZenith, uHorizon, uShallow, uMid, uDeep, uFall;
+uniform float uTime, uDay, uStars, uSnow; uniform vec4 uLakeC; uniform float uLakeY; uniform vec3 uLight, uFoam, uLCol, uSunRaw, uSunDir, uLDir, uZenith, uHorizon, uShallow, uMid, uDeep, uFall;
 uniform sampler2D uHeight, uSky;
 varying vec3 vWorld, vN; varying float vWave;
 #ifndef SEA
@@ -154,17 +154,20 @@ void main(){
     body = bands(d, 16.);
     alpha = mix(.45, 1., smoothstep(0., 2.2, d));
     // shore foam: three surges per cycle, crisp cel line, a lacy wash behind it, then a slower drag back
-    float dw = d + (noise(p * .35 + vec2(t * .05, 0.)) - .5) * .9, lace = step(.42, noise(p * 1.5 + t * .1));
+    vec2 e = vec2(1.4 / (2. * HALF), 0.);
+    float hx = texture2D(uHeight, (p + HALF) / (2. * HALF) + e.xy).r - texture2D(uHeight, (p + HALF) / (2. * HALF) - e.xy).r, hz = texture2D(uHeight, (p + HALF) / (2. * HALF) + e.yx).r - texture2D(uHeight, (p + HALF) / (2. * HALF) - e.yx).r;
+    float sd = d / clamp(length(vec2(hx, hz)) / 2.8, .06, 1.);                                  // metres to the shoreline, whatever the beach slope
+    float dw = sd + (noise(p * .35 + vec2(t * .05, 0.)) - .5) * .8, lace = step(.42, noise(p * 1.5 + t * .1));
     for (int i = 0; i < 3; i++) {
       float ph = fract(t * .085 + float(i) * .33 + noise(p * .025 + float(i)) * .4);
-      float s = ph < .62 ? sin(ph / .62 * 1.5708) : 1. - .55 * smoothstep(.62, 1., ph), fd = mix(3.4, .12, s);
+      float s = ph < .62 ? sin(ph / .62 * 1.5708) : 1. - .55 * smoothstep(.62, 1., ph), fd = mix(6., .3, s);
       float life = smoothstep(0., .08, ph) * (1. - smoothstep(.82, 1., ph));
-      float front = 1. - smoothstep(0., .05, abs(dw - fd) - .1), wash = step(dw, fd) * step(fd - .55, dw) * lace * .9;
+      float front = 1. - smoothstep(0., .08, abs(dw - fd) - .16), wash = step(dw, fd) * step(fd - 1.1, dw) * lace * .85;
       foam = max(foam, max(front, wash) * life);
     }
-    foam = max(foam, 1. - smoothstep(.05, .12, dw));
+    foam = max(foam, 1. - smoothstep(.004, .02, d));
     foam = max(foam, step(.9, vWave + noise(p * .9 + t * .25) * .35) * smoothstep(3., 10., d) * (1. - smoothstep(120., 260., dist))); // white caps
-    float wet = 1. - smoothstep(0., .2, d);                                                  // beach film: dark wet sand under the swash
+    float wet = 1. - smoothstep(0., .12, d);                                                  // beach film: dark wet sand under the swash
     body = mix(body, vec3(.12, .08, .06), wet * .8); alpha = mix(alpha, .55, wet);
     caus = 1. - smoothstep(0., 3.5, d);
   #elif defined(LAKE)
@@ -174,13 +177,14 @@ void main(){
     n = normalize(vec3(-gx * .03 - sin(p.x * .9 + t * .7) * .012 - rp.x, 1., -gz * .03 - cos(p.y * 1.1 - t * .6) * .012 - rp.y));
     body = bands(d, 5.); glint = .6;
     alpha = mix(.3, .97, smoothstep(0., 2., d));
-    foam = (1. - smoothstep(.05, .5, d + noise(p * .8 + t * .1) * .35)) * .6;                 // soft foam line where it meets the bank
+    float fw = fwidth(d);
+    foam = (1. - smoothstep(fw, fw * 4., d + noise(p * .8 + t * .1) * .1)) * .6;                 // soft foam line where it meets the bank
     float fd = distance(p, uFall.xy), churn = noise(p * 1.6 + vec2(0., t * 1.5));
     foam = max(foam, step(.35, 1. - smoothstep(uFall.z * .55, uFall.z, fd + churn * 1.3)) * (.65 + .35 * step(.5, churn)) * step(.5, uFall.z));
     float wet = 1. - smoothstep(0., .15, d); body = mix(body, vec3(.1, .09, .06), wet * .6);
     caus = 1. - smoothstep(0., 2.5, d);
   #else
-    d = vDepth; if (d < 0. || vSlope > 1.) discard;
+    d = vDepth; if (d < 0. || vSlope > 1. || (vWorld.y < uLakeY + .05 && distance(p, uLakeC.xy) < uLakeC.z)) discard;
     float sp = 1.1 + 5. * clamp(vSlope, 0., 1.);                                              // faster where steep
     vec2 q = vec2(vFlow.x * 1.4, vFlow.y * .5 - t * sp * .5);
     float a0 = noise(q), gu = (noise(q + vec2(.1, 0.)) - a0) / .1, gv = (noise(q + vec2(0., .1)) - a0) / .1;
@@ -189,25 +193,27 @@ void main(){
     alpha = mix(.4, .95, smoothstep(0., 1., d));
     float rapid = smoothstep(.1, .3, vSlope) * step(.45, noise(q * vec2(1.8, 1.1)));
     float rock = (1. - smoothstep(.12, .5, d)) * step(.62, noise(vec2(vFlow.x * .9, vFlow.y * .7)));
-    foam = max(max(rapid, rock * (.6 + .4 * step(.5, a0))), 1. - smoothstep(0., .14, d));
+    float fw = fwidth(d);
+    foam = max(max(rapid, rock * (.6 + .4 * step(.5, a0))), 1. - smoothstep(fw * .5, fw * 2.5, d));
     float wet = 1. - smoothstep(0., .12, d); body = mix(body, vec3(.1, .09, .06), wet * .5);
     caus = 1. - smoothstep(0., 1.5, d);
   #endif
+  foam = max(foam, rp.z * .8);
   n = normalize(mix(n, vec3(0., 1., 0.), smoothstep(60., 300., dist)));                        // far water calms: no shimmer at the horizon
   vec3 R = reflect(-V, n); R.y = abs(R.y);
   vec3 refl = skyAt(R);
   #ifndef SEA
     float tanE = texture2D(uSky, vec2(atan(R.z, R.x) / TAU + .5, .5)).r * 1.3 - .1, tr = R.y / max(length(R.xz), 1e-3);
-    vec3 rockC = mix(uHorizon, vec3(.1, .17, .3), .55) * (.35 + .65 * uDay);
+    vec3 rockC = mix(uZenith, vec3(.05, .24, .3), .6) * (.45 + .55 * uDay);
     rockC = mix(rockC, mix(vec3(1.), uHorizon, .25) * (.4 + .6 * uDay), (1. - smoothstep(0., .12, tanE - tr)) * .85);
-    refl = mix(refl, rockC, 1. - smoothstep(tanE - .01, tanE + .01, tr));
+    refl = mix(refl, rockC, (1. - smoothstep(tanE - .01, tanE + .01, tr)) * .8);
   #endif
   refl += step(.992, hash(floor(R.xz / (R.y + .2) * 70.))) * uStars * (.6 + .4 * sin(t * 3. + R.x * 40.)) * vec3(.8, .9, 1.) * .8;   // stars in the water at night
   float nv = max(dot(n, V), 0.), F = .06 + .94 * pow(1. - nv, 4.);
-  vec3 col = mix(body * uLight, refl, F * .85);
+  vec3 col = mix(body * uLight * (.6 + .4 * uDay), refl, F * .85);
   col += caus * (1. - smoothstep(.1, .6, abs(noise(p * 1.2 + t * .25) - noise(p * 1.2 - t * .2 + 5.)) * 6.)) * uLCol * .3;
   float sr = max(dot(R, uLDir), 0.), spark = step(.55, noise(p * 2.2 + t * vec2(.8, .5)));
-  col += uLCol * glint * (smoothstep(.9985, .9992, sr) * 1.6 + spark * smoothstep(.97, .985, sr) * 1.2 + pow(sr, 12.) * .2);   // discrete cel sparkle bands plus a soft sun path
+  col += uLCol * glint * (smoothstep(.9985, .9992, sr) * 1.6 + spark * smoothstep(.97, .985, sr) * 1.2 + pow(sr, 12.) * .1);   // discrete cel sparkle bands plus a soft sun path
   col = mix(col, uFoam, foam);
   col = mix(col, vec3(dot(col, vec3(.33))) * vec3(.85, .95, 1.1), uSnow * .35);
   #ifdef USE_FOG
@@ -240,7 +246,7 @@ export function createWater(opts = {}) {
   };
   const mat = (kind, colors) => new ShaderMaterial({
     transparent: true, depthWrite: false, fog: true, defines: { [kind]: 1 }, vertexShader: VERT, fragmentShader: FRAG,
-    uniforms: Object.assign(UniformsUtils.merge([UniformsLib.fog]), S, { uFall: { value: new Vector3() } }, Object.fromEntries(['uShallow', 'uMid', 'uDeep'].map((k, i) => [k, { value: new Color(colors[i]) }]))),
+    uniforms: Object.assign(UniformsUtils.merge([UniformsLib.fog]), S, { uFall: { value: new Vector3() }, uLakeC: { value: new Vector4(lake.x, lake.z, lake.r * 1.45, 0) }, uLakeY: { value: lake.level } }, Object.fromEntries(['uShallow', 'uMid', 'uDeep'].map((k, i) => [k, { value: new Color(colors[i]) }]))),
   });
   const seaMat = mat('SEA', ['#5fe3cf', '#1fa3c8', '#0a2f6b']), lakeMat = mat('LAKE', ['#59d6b0', '#1f9aa0', '#0b4a66']), riverMat = mat('RIVER', ['#7fe0c0', '#38b0b8', '#1a7f9c']);
   if (fi) lakeMat.uniforms.uFall.value.set(fi.px, fi.pz, 5);
@@ -265,7 +271,7 @@ export function createWater(opts = {}) {
       S.uLCol.value.set(p.sunColor).multiplyScalar(p.sunIntensity ?? 1);
       S.uDay.value = clamp01((p.sunDir.y + 0.1) / 0.35); S.uStars.value = p.stars || 0; S.uSnow.value = p.snow || 0;
       const l = S.uLight.value.set(p.ambient).multiplyScalar(0.55), k = 0.6 * clamp01(L.y * 2), c = S.uLCol.value;
-      l.r += c.r * k + 0.03; l.g += c.g * k + 0.03; l.b += c.b * k + 0.05;
+      l.r += c.r * k + 0.01; l.g += c.g * k + 0.012; l.b += c.b * k + 0.02;
       const f = S.uFoam.value.copy(tmp.copy(l).multiplyScalar(1.7).addScalar(0.15));
       f.r = Math.min(1, f.r); f.g = Math.min(1, f.g); f.b = Math.min(1, f.b);
       if (cam) { const q = cam.position || cam; sea.position.set(Math.round(q.x / 4) * 4, 0, Math.round(q.z / 4) * 4); }
