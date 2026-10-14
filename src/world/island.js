@@ -89,3 +89,23 @@ export function zoneAt(x, z) {
   if (h < 1) return 'beach';
   return woods(x, z) > 0.3 ? 'forest' : 'meadow';
 }
+
+// ---- Water contract (shared by terrain, water, flora, village, life, paths) ----
+// These constants describe WHERE the fresh water is. The terrain agent shapes heightAt to match them
+// (basin under LAKE, channels under RIVERS, a cliff step under FALLS); the water renderer and everyone
+// who must avoid water read them. Until the terrain work lands, waterSurfaceAt only knows the sea.
+export const LAKE = { x: -5, z: -42, r: 24, level: 4 }; // a lake in the heart of the island, between the village and the mountain
+export const RIVERS = [
+  // glacier meltwater: mountain flank, down the falls, into the lake's north shore
+  { name: 'meltwater', width: 4, pts: [[-12, -92], [-9, -80], [-7, -70], [-6, -64]] },
+  // outflow: lake south shore, past the village's east side, to the cove on the south coast
+  { name: 'outflow', width: 4, pts: [[-3, -20], [6, -4], [20, 12], [26, 40], [24, 70], [18, 100]] },
+];
+export const FALLS = [{ x: -7, z: -70, drop: 12 }]; // the waterfall where the meltwater drops into the lake
+
+// Height of the water surface covering (x, z): 0 for the sea, LAKE.level for the lake, the river's own level
+// for rivers; null on dry land. isWet is the quick yes/no. Keep these signatures: other modules import them.
+export function waterSurfaceAt(x, z) {
+  return heightAt(x, z) < 0 ? 0 : null;
+}
+export const isWet = (x, z) => waterSurfaceAt(x, z) !== null;
