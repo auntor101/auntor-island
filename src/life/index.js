@@ -399,7 +399,7 @@ export function createLife(scene, { heightAt, isWet, zoneAt, onSfx = () => {}, i
     // debugging and demo
     get stats() { return { animals: views.length, visible: views.filter((v) => v.holder.visible).length, night, comp: { x: comp.x, z: comp.z, moving: comp.moving, speed: comp.speed } }; },
     get animals() { return views.map((v) => ({ kind: v.kind, breed: v.breed.name, x: v.st.x, z: v.st.z, mode: v.st.mode, visible: v.holder.visible, sleepK: v.sleepK })); },
-    get _views() { return views; },
+    get _views() { return views; }, _comp: () => comps[compKind],
   };
   return api;
 }

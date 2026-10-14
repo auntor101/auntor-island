@@ -113,11 +113,11 @@ export function petAnimal(a) {
 
 // ---- Companion steering ----
 // Player heading 0 faces -z: forward = (-sin h, -cos h). The companion wants a spot 2.4 m behind and 0.9 m to one side.
-export const COMP = { behind: 2.4, side: 0.9, teleport: 25, maxSpeed: 7.5 };
+export const COMP = { behind: 1.5, side: 1.7, teleport: 25, maxSpeed: 7.5 };
 // Writes the best free spot into out ({x, z}); falls back to nearer spots, then to the player's own.
 export function companionTarget(p, side, ok, out) {
   const fx = -Math.sin(p.heading), fz = -Math.cos(p.heading), rx = -fz, rz = fx; // right-hand side of the player
-  for (const [b, s] of [[COMP.behind, COMP.side * side], [COMP.behind, -COMP.side * side], [1.6, 0], [0.6, 1.4 * side], [0, 0]]) {
+  for (const [b, s] of [[COMP.behind, COMP.side * side], [COMP.behind, -COMP.side * side], [2.2, 0], [0.6, 1.4 * side], [0, 0]]) {
     const x = p.x - fx * b + rx * s, z = p.z - fz * b + rz * s;
     if (ok(x, z)) { out.x = x; out.z = z; return out; }
   }
