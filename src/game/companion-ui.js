@@ -44,6 +44,6 @@ export function createPetUi(hud, canvas, camera, life, getState) {
   });
   return {
     show(v) { on = v; if (!v) b.hidden = true; },
-    update() { if (!on) return; t = (t + 1) % 6; if (!t) b.hidden = !life.nearest(getState(), 2.5); }, // the near test runs 10 times a second
+    update() { if (!on) return; t = (t + 1) % 6; if (!t) b.hidden = !life.nearest(getState(), 1.6); }, // the near test runs 10 times a second
   };
 }
