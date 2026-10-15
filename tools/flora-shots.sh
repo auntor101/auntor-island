@@ -1,6 +1,6 @@
 #!/bin/sh
-# Takes the flora screenshot set into shots/ (dev server on :5189 serving the repo root). usage: tools/flora-shots.sh [names...]
-U=http://localhost:5189/demo/flora.html
+# Takes the flora screenshot set into shots/ (dev server on :5190 serving the repo root). usage: tools/flora-shots.sh [names...]
+U=http://localhost:5190/demo/flora.html
 shot() { node tools/shoot.mjs "$U?$1" "shots/flora-$2.png" --size "${3:-1280x720}" ${4:-} --wait ready --delay 1000 2>&1 | grep HUD | cut -c1-260; }
 for n in "$@"; do
   case $n in

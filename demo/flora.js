@@ -73,7 +73,7 @@ startLoop((dt, now, rawMs) => {
   stars.points.position.copy(cp); moon.group.position.copy(cp);
   stars.update(now / 1000, base.stars, 1); moon.update(hours, 0.5, base.moon);
   snow.update(now / 1000, snowK, 1, tmp.set('#8fa4d8').lerp(WHITE, day));
-  chunks.update(cp); sky.mesh.position.copy(cp); water.mesh.position.set(Math.round(cp.x / 8) * 8, 0, Math.round(cp.z / 8) * 8); water.update(now / 1000, pal);
+  chunks.update(cp); sky.mesh.position.copy(cp); water.update(pal, now / 1000, cp);
   if (!frames++) { flora.flush(cp); for (let i = 0; i < 120; i++) chunks.update(cp); } // build every chunk in range up front so a screenshot sees the finished island
   flora.update(cp, q.has('noplayer') ? null : player, dt, pal, camera);
   gl.render(scene, camera, rawMs);

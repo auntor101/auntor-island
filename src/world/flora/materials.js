@@ -97,7 +97,7 @@ export function foliageMaterial(shared, { map, atlas = false, recolor = false, r
         }
         #endif
         #ifndef RECOLOR
-          if (leaf) alb *= vec3(1.9, 2.0, 1.7);   // pine needles: the painted texture is dark, lift it
+          if (leaf) alb = mix(alb * 2., S(vec3(.2, .46, .28)), .65);   // pine needles: the painted texture is nearly black, lift it
         #endif
         #ifdef ROCK
           alb = mix(alb, alb * vec3(.5, .38, .4), vSea);          // ember rock on the volcano
