@@ -38,6 +38,9 @@ html, body { margin:0; height:100%; overflow:hidden; background:var(--cream); co
 #ui .sel-char { display:flex; flex-direction:column; align-items:center; gap:4px; min-height:44px; padding:6px 6px 8px; border:3px solid var(--ink); border-radius:18px; background:#fff; color:var(--ink); font:800 16px var(--body); touch-action:manipulation; }
 #ui .sel-char img { width:100%; max-width:128px; height:auto; aspect-ratio:1; border-radius:12px; object-fit:cover; }
 #ui .sel-char.on { background:var(--coral); box-shadow:0 0 0 3px var(--cream), 0 0 0 6px var(--ink); }
+#ui .sel-comp { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+#ui .sel-friend { min-height:48px; padding:6px; font-size:16px; }
+#ui .sel-comp-h { margin:12px 0 6px; font-size:15px; }
 #ui .sel-row { display:flex; gap:10px; margin-top:14px; }
 #ui .sel-name { flex:1; min-width:0; min-height:52px; padding:0 14px; border:3px solid var(--ink); border-radius:26px; background:#fff; color:var(--ink); font:700 16px var(--body); }
 #ui .sel-go { min-width:104px; min-height:52px; border:3px solid var(--ink); border-radius:26px; background:var(--coral); color:var(--ink); font:800 18px var(--body); touch-action:manipulation; }
@@ -50,7 +53,7 @@ html, body { margin:0; height:100%; overflow:hidden; background:var(--cream); co
   #ui .sel-title { font-size:24px; display:inline; } #ui .sel-sub { display:inline; margin-left:10px; }
   #ui .sel-grid { grid-template-columns:repeat(4, 1fr); margin-top:8px; }
   #ui .sel-char img { max-width:86px; }
-  #ui .sel-row { margin-top:10px; } #ui .sel-bar { margin-top:8px; } #ui .sel-msg { display:none; }
+  #ui .sel-row { margin-top:10px; } #ui .sel-comp-h { display:inline; margin:0 8px 0 0; } #ui .sel-comp { display:inline-grid; width:60%; vertical-align:middle; margin-top:6px; } #ui .sel-friend { min-height:44px; } #ui .sel-bar { margin-top:8px; } #ui .sel-msg { display:none; }
 }
 </style>
 </head>

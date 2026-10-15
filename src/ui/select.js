@@ -19,6 +19,12 @@ export function createSelect(host, profile, onStart) {
     b.onclick = () => pick(id);
     cards[id] = b;
   }
+  el('p', 'sel-sub sel-comp-h', 'Choose a friend', card);
+  const crow = el('div', 'sel-comp', '', card), comps = {};
+  let comp = profile.comp || 'dragon';
+  const pickComp = (id) => { comp = id; for (const k in comps) { comps[k].classList.toggle('on', k === id); comps[k].setAttribute('aria-pressed', String(k === id)); } };
+  for (const id of ['dragon', 'dog', 'cat']) { const b = el('button', 'sel-char sel-friend', id[0].toUpperCase() + id.slice(1), crow); b.onclick = () => pickComp(id); comps[id] = b; }
+  pickComp(comp);
   const row = el('div', 'sel-row', '', card);
   const input = el('input', 'sel-name', '', row);
   input.maxLength = 12; input.placeholder = 'Your name'; input.autocomplete = 'off'; input.enterKeyHint = 'go'; input.setAttribute('aria-label', 'Your name');
@@ -26,7 +32,7 @@ export function createSelect(host, profile, onStart) {
   const go = el('button', 'sel-go', 'Start', row);
   const bar = el('div', 'sel-bar', '', card), fill = el('div', '', '', bar), msg = el('div', 'sel-msg', 'Raising the island...', card);
   pick(choice);
-  const start = () => onStart({ char: choice, name: sanitizeName(input.value) });
+  const start = () => onStart({ char: choice, name: sanitizeName(input.value), comp });
   go.onclick = start;
   input.onkeydown = (e) => { if (e.key === 'Enter') start(); };
   return {

@@ -1,6 +1,6 @@
 import { Scene, PerspectiveCamera, HemisphereLight, DirectionalLight, Fog, Color, Vector3, Mesh, PlaneGeometry, MeshBasicMaterial, CanvasTexture } from 'three';
 import { createRenderer, startLoop } from './render/renderer.js';
-import { heightAt, LANDMARKS } from './world/island.js';
+import { heightAt, isWet, zoneAt } from './world/island.js';
 import { ChunkManager, createTerrainMaterial } from './world/terrain.js';
 import { createSky } from './world/sky.js';
 import { skyPalette, sunDirection, moonDirection } from './world/time.js';
@@ -15,6 +15,11 @@ import { createCamera } from './play/camera.js';
 import { loadCharacter } from './play/roster.js';
 import { CHARS, load as loadProfile, save as saveProfile, sanitizeName } from './profile.js';
 import { createSelect } from './ui/select.js';
+import { createVillage } from './world/village/village.js';
+import { createLife } from './life/index.js';
+import { createAudio, createAudioButton } from './audio/index.js';
+import { createAudioDriver } from './game/audio-driver.js';
+import { spawnPoint, createPetUi } from './game/companion-ui.js';
 
 const gl = createRenderer(document.getElementById('gl'));
 const scene = new Scene();
@@ -28,6 +33,10 @@ scene.add(hemi, sun, sun.target);
 const sky = createSky(), water = createWater(), terrain = createTerrainMaterial(), chunks = new ChunkManager(scene, terrain);
 const stars = createStars(), moon = createMoon(), snow = createSnow(camera);
 scene.add(sky.mesh, stars.points, moon.group, water.mesh, snow.points);
+const village = createVillage(scene, { heightAt, isWet, zoneAt });
+const audio = createAudio(), audioDrv = createAudioDriver(audio, water, village);
+const life = createLife(scene, { heightAt, isWet, zoneAt, isTouch: matchMedia('(pointer:coarse)').matches, onSfx: (name, o) => audio.sfx(name, o) });
+addEventListener('pointerdown', () => audio.unlock(), { passive: true }); // iOS fallback: any first tap
 
 // One palette drives sky, fog, lights, terrain and water. It is rebuilt every frame from the hour and the snow amount.
 const pal = { sunDir: new Vector3(), lightDir: new Vector3() }, WHITE = new Color('#ffffff'), tmp = new Color(), fogC = new Color(), horC = new Color(), zenC = new Color(), grey = new Color('#a8b4c8'), SNOWFOG = new Color('#e4edfb');
@@ -68,8 +77,9 @@ const skyHud = createHud(hud, prefs, { onMode: (m) => { mode = m; }, onSnow: (on
 
 // ?fly (or ?cam=spawn|village|aerial|topdown|beach|sunset|volcano|peak, or x,y,z,yawDeg,pitchDeg) is the debug free camera: WASD + shift, space/C up/down,
 // mouse drag to look, touch: left half drags to move, right half drags to look. No hero, no select screen. Everything else is the real game.
+const VC = village.layout.center;
 const VIEWS = { // x,y,z,yawDeg,pitchDeg (yaw 0 looks north, -z)
-  spawn: [8, heightAt(8, 60) + 12, 60, 0, 3], village: [8, heightAt(8, 6) + 8, 6, 0, -6], aerial: [0, 180, 70, 0, -60], topdown: [0, 200, 0, 0, -90],
+  spawn: [VC[0] + 8, heightAt(VC[0] + 8, VC[1] + 50) + 12, VC[1] + 50, 0, 3], village: [VC[0], heightAt(VC[0], VC[1] + 12) + 7, VC[1] + 12, 0, -10], aerial: [0, 180, 70, 0, -60], topdown: [0, 200, 0, 0, -90],
   beach: [-60, 14, 80, -150, -8], sunset: [-60, 14, 80, 127, 6], volcano: [50, 55, 45, -52, -18], peak: [-10, 125, -30, 0, -14],
 };
 const camParam = params.get('cam'), fly = params.has('fly') || camParam != null;
@@ -98,6 +108,8 @@ btn.textContent = 'stats';
 btn.setAttribute('aria-expanded', 'false');
 btn.onclick = () => { panel.hidden = !panel.hidden; btn.setAttribute('aria-expanded', String(!panel.hidden)); };
 skyHud.root.append(btn, panel);
+createAudioButton(skyHud.root, audio).el.style.margin = '8px';
+btn.after(skyHud.root.lastChild); // Sky, stats, sound stack in one column; the stats text panel stays last
 const note = document.createElement('div');
 note.className = 'note';
 hud.append(note);
@@ -115,12 +127,14 @@ let hero = null, controls = null, follow = null, state = null, heroId = '';
 const inp = { x: 0, y: 0, run: false, cameraYaw: 0 };
 const game = window.__game = { bot: null, get state() { return state; }, get cam() { return follow; } }; // bot = { x, y, run } overrides the controls (tests, screenshots)
 
-async function startGame(char, name) {
+async function startGame(char, name, comp) {
   const t0 = performance.now();
   hero = await loadCharacter(char);
   heroId = char; scene.add(hero.root);
-  const sp = LANDMARKS.spawn;
+  const sp = spawnPoint(village, heightAt, isWet);
+  if (comp) life.setCompanion(comp);
   state = { x: sp.x, z: sp.z, y: heightAt(sp.x, sp.z), heading: 0, speed: 0 };
+  pet.show(true);
   controls = createControls(cv, hud); follow = createCamera(camera);
   blob.visible = true;
   note.textContent = 'Welcome to Auntor Island, ' + name;
@@ -129,16 +143,19 @@ async function startGame(char, name) {
   game.loadMs = Math.round(performance.now() - t0);
 }
 
+const pet = createPetUi(hud, cv, camera, life, () => state);
 const profile = loadProfile(localStorage);
+const compParam = ['dragon', 'dog', 'cat'].includes(params.get('comp')) ? params.get('comp') : null;
 const skipChar = CHARS.includes(params.get('char')) ? params.get('char') : null;
 let select = null;
 if (!skipChar && !fly) hud.style.visibility = 'hidden'; // the start card covers the screen, the HUD returns with the game
-if (skipChar) startGame(skipChar, sanitizeName(params.get('name')));
+if (skipChar) startGame(skipChar, sanitizeName(params.get('name')), compParam);
 else if (!fly) {
-  select = createSelect(document.getElementById('ui'), profile, async (p) => {
+  select = createSelect(document.getElementById('ui'), { ...profile, comp: compParam || life.getCompanion() }, async (p) => {
+    audio.unlock(); // inside the Start tap
     saveProfile(localStorage, p);
     select.busy(true, 'Loading...');
-    try { await startGame(p.char, p.name); select.hide(); select = null; hud.style.visibility = ''; } catch (e) { console.error(e); select.busy(false, 'Try again'); }
+    try { await startGame(p.char, p.name, p.comp); select.hide(); select = null; hud.style.visibility = ''; } catch (e) { console.error(e); select.busy(false, 'Try again'); }
   });
 }
 
@@ -147,12 +164,15 @@ startLoop((dt, now, rawMs) => {
   if (hero) {
     const c = game.bot || controls.read();
     inp.x = c.x; inp.y = c.y; inp.run = c.run; inp.cameraYaw = follow.yaw;
-    state = stepPlayer(state, inp, dt, heightAt);
+    state = stepPlayer(state, inp, dt, heightAt, village.colliders);
     follow.update(state, c.lookDX || 0, c.lookDY || 0, dt);
     hero.update(dt, state.speed);
     hero.root.position.set(state.x, state.y, state.z);
     hero.root.rotation.y = state.heading + Math.PI; // the models face +z, the player heading 0 faces -z
     blob.position.set(state.x, state.y + 0.04, state.z);
+    life.update(dt, state, camera, pal);
+    audioDrv.update(dt, state, totalHours, snowK);
+    pet.update();
   } else if (fly) {
     let f = (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0), r = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0);
     for (const t of touches.values()) if (t.move) { f += Math.max(-1, Math.min(1, (t.y0 - t.y) / 50)); r += Math.max(-1, Math.min(1, (t.x - t.x0) / 50)); }
@@ -163,7 +183,7 @@ startLoop((dt, now, rawMs) => {
     camera.position.set(x, Math.max(y, heightAt(x, z) + 2), z);
     camera.rotation.set(pitch, yaw, 0, 'YXZ');
   } else { // behind the start card: a slow orbit round the spawn
-    const a = now * 0.00008, sp = LANDMARKS.spawn, ox = sp.x + Math.sin(a) * 34, oz = sp.z + Math.cos(a) * 34;
+    const a = now * 0.00008, sp = { x: VC[0], z: VC[1] }, ox = sp.x + Math.sin(a) * 34, oz = sp.z + Math.cos(a) * 34;
     camera.position.set(ox, Math.max(heightAt(ox, oz), 0) + 12, oz);
     camera.lookAt(sp.x, heightAt(sp.x, sp.z) + 4, sp.z);
   }
@@ -182,6 +202,7 @@ startLoop((dt, now, rawMs) => {
   moon.update(totalHours, phaseOf(), base.moon * (1 - 0.5 * snowK));
   snow.update(now / 1000, snowK, px, tmp.set('#8fa4d8').lerp(WHITE, day));
   chunks.update(cp);
+  village.update(dt, pal, cp);
   sky.mesh.position.copy(cp);
   water.update(pal, now / 1000, camera.position);
 
