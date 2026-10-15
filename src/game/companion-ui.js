@@ -1,7 +1,7 @@
 // Where the player starts, the Pet button (bottom-centre, only near an animal) and tap-to-pet on the canvas.
 import { Raycaster, Vector2 } from 'three';
 
-const clear = (c, x, z, m) => {
+export const clear = (c, x, z, m) => {
   if (c.kind === 'circle') return Math.hypot(x - c.x, z - c.z) > c.r + m;
   const co = Math.cos(c.rot), si = Math.sin(c.rot), ax = x - c.x, az = z - c.z, lx = ax * co - az * si, lz = ax * si + az * co;
   return Math.hypot(Math.max(Math.abs(lx) - c.hw, 0), Math.max(Math.abs(lz) - c.hd, 0)) > m;
@@ -14,6 +14,16 @@ export function spawnPoint(village, heightAt, isWet) {
     if (!isWet(x, z) && heightAt(x, z) > 0.5 && village.colliders.every((c) => clear(c, x, z, 1.5))) return { x, z };
   }
   return { x: cx, z: cz };
+}
+
+// Keep the follow camera out of walls: slide it toward the player's head until it is 0.6 m clear of every collider and above ground level.
+export function pullCamera(camera, p, cols, heightAt) {
+  const hy = p.y + 1.6, cp = camera.position, dx = cp.x - p.x, dy = cp.y - hy, dz = cp.z - p.z;
+  for (let t = 1; t > 0.15; t -= 0.1) {
+    const x = p.x + dx * t, z = p.z + dz * t, y = hy + dy * t;
+    if (y > heightAt(x, z) + 0.3 && cols.every((c) => clear(c, x, z, 0.6))) { cp.set(x, y, z); return; }
+  }
+  cp.set(p.x + dx * 0.15, hy + dy * 0.15, p.z + dz * 0.15);
 }
 
 const CSS = `.pet{position:absolute;left:calc(50% + 8px);bottom:calc(28px + env(safe-area-inset-bottom));min-width:84px;min-height:52px;margin:0;padding:0 16px;border:3px solid #2a1f3d;border-radius:26px;background:#fff7ea;color:#2a1f3d;font:800 16px 'Nunito',system-ui,sans-serif;box-shadow:0 3px 0 #2a1f3d;touch-action:manipulation}.pet:active{background:#ff7a59}.pet[hidden]{display:none}`;

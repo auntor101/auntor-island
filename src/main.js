@@ -1,6 +1,6 @@
 import { Scene, PerspectiveCamera, HemisphereLight, DirectionalLight, Fog, Color, Vector3, Mesh, PlaneGeometry, MeshBasicMaterial, CanvasTexture } from 'three';
 import { createRenderer, startLoop } from './render/renderer.js';
-import { heightAt, isWet, zoneAt } from './world/island.js';
+import { heightAt, isWet, zoneAt, LAKE } from './world/island.js';
 import { ChunkManager, createTerrainMaterial } from './world/terrain.js';
 import { createSky } from './world/sky.js';
 import { skyPalette, sunDirection, moonDirection } from './world/time.js';
@@ -19,7 +19,7 @@ import { createVillage } from './world/village/village.js';
 import { createLife } from './life/index.js';
 import { createAudio, createAudioButton } from './audio/index.js';
 import { createAudioDriver } from './game/audio-driver.js';
-import { spawnPoint, createPetUi } from './game/companion-ui.js';
+import { spawnPoint, createPetUi, pullCamera } from './game/companion-ui.js';
 
 const gl = createRenderer(document.getElementById('gl'));
 const scene = new Scene();
@@ -103,6 +103,7 @@ if (fly) {
 
 // Stats live in the same column as the Sky button, under its panel, so the two never overlap.
 const panel = document.createElement('pre');
+panel.hidden = true;
 const btn = document.createElement('button');
 btn.textContent = 'stats';
 btn.setAttribute('aria-expanded', 'false');
@@ -125,13 +126,13 @@ const blob = (() => {
 })();
 let hero = null, controls = null, follow = null, state = null, heroId = '';
 const inp = { x: 0, y: 0, run: false, cameraYaw: 0 };
-const game = window.__game = { bot: null, get state() { return state; }, get cam() { return follow; } }; // bot = { x, y, run } overrides the controls (tests, screenshots)
+const game = window.__game = { bot: null, village, life, audio, get state() { return state; }, get cam() { return follow; } }; // bot = { x, y, run } overrides the controls (tests, screenshots)
 
 async function startGame(char, name, comp) {
   const t0 = performance.now();
   hero = await loadCharacter(char);
   heroId = char; scene.add(hero.root);
-  const sp = spawnPoint(village, heightAt, isWet);
+  const at = village.anchors[{ feast: 'feastStreet', dock: 'harbourDock', hall: 'greatHall' }[params.get('at')] || params.get('at')], sp = at ? { x: at.x, z: at.z } : params.get('at') === 'lake' ? { x: LAKE.x + 6, z: LAKE.z + LAKE.r - 6 } : spawnPoint(village, heightAt, isWet); // ?at=feast|dock|hall|lake|<anchor> for screenshots
   if (comp) life.setCompanion(comp);
   state = { x: sp.x, z: sp.z, y: heightAt(sp.x, sp.z), heading: 0, speed: 0 };
   pet.show(true);
@@ -166,6 +167,7 @@ startLoop((dt, now, rawMs) => {
     inp.x = c.x; inp.y = c.y; inp.run = c.run; inp.cameraYaw = follow.yaw;
     state = stepPlayer(state, inp, dt, heightAt, village.colliders);
     follow.update(state, c.lookDX || 0, c.lookDY || 0, dt);
+    pullCamera(camera, state, village.colliders, heightAt);
     hero.update(dt, state.speed);
     hero.root.position.set(state.x, state.y, state.z);
     hero.root.rotation.y = state.heading + Math.PI; // the models face +z, the player heading 0 faces -z

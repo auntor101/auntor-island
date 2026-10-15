@@ -2,23 +2,27 @@
 import { createRequire } from 'node:module';
 const puppeteer = createRequire(import.meta.url)('../node_modules/puppeteer');
 const url = process.argv[2] || 'http://localhost:5391/';
-const browser = await puppeteer.launch({ executablePath: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', headless: 'new', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox'] });
+const browser = await puppeteer.launch({ executablePath: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', headless: 'new', protocolTimeout: 400000, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox'] });
 try {
   const page = await browser.newPage();
   await page.setViewport({ width: 390, height: 844, hasTouch: true, isMobile: true });
   const errs = []; page.on('pageerror', (e) => errs.push(String(e))); page.on('console', (m) => m.type() === 'error' && errs.push(m.text()));
   await page.goto(url, { waitUntil: 'load' });
-  await page.waitForSelector('.sel-char');
+  await page.waitForSelector('.sel-grid .sel-char');
   const center = async (sel, n = 0) => { const r = await page.evaluate((s, i) => { const b = document.querySelectorAll(s)[i].getBoundingClientRect(); return [b.x + b.width / 2, b.y + b.height / 2, b.width, b.height]; }, sel, n); return r; };
-  for (const [i, who] of ['man', 'woman', 'elf', 'wizard'].entries()) { const [x, y, w, h] = await center('.sel-char', i); console.log(who, 'card', Math.round(w) + 'x' + Math.round(h)); }
-  let [x, y] = await center('.sel-char', 2); await page.touchscreen.tap(x, y);
+  for (const [i, who] of ['man', 'woman', 'elf', 'wizard'].entries()) { const [x, y, w, h] = await center('.sel-grid .sel-char', i); console.log(who, 'card', Math.round(w) + 'x' + Math.round(h)); }
+  let [x, y] = await center('.sel-grid .sel-char', 2); await page.touchscreen.tap(x, y);
   [x, y] = await center('.sel-name'); await page.touchscreen.tap(x, y); await page.keyboard.type('Zed<b>Longname1234');
-  console.log('pressed', await page.evaluate(() => [...document.querySelectorAll('.sel-char')].map((b) => b.getAttribute('aria-pressed')).join()), 'name field', await page.evaluate(() => document.querySelector('.sel-name').value));
+  console.log('pressed', await page.evaluate(() => [...document.querySelectorAll('.sel-grid .sel-char')].map((b) => b.getAttribute('aria-pressed')).join()), 'name field', await page.evaluate(() => document.querySelector('.sel-name').value));
+  const [cx, cy, cw, ch] = await center('.sel-friend', 2); await page.touchscreen.tap(cx, cy); // Cat
+  console.log('companion cards', Math.round(cw) + 'x' + Math.round(ch), 'pressed', await page.evaluate(() => [...document.querySelectorAll('.sel-friend')].map((b) => b.getAttribute('aria-pressed')).join()));
   const [gx, gy, gw, gh] = await center('.sel-go'); console.log('start', Math.round(gw) + 'x' + Math.round(gh));
   const t0 = Date.now(); await page.touchscreen.tap(gx, gy);
   await page.waitForFunction(() => /Welcome to Auntor Island/.test(document.body.innerText), { timeout: 120000 });
   console.log('welcome after', Date.now() - t0, 'ms:', await page.evaluate(() => document.querySelector('.note').textContent), '| card hidden', await page.evaluate(() => document.querySelector('.sel').hidden));
   console.log('stored', await page.evaluate(() => localStorage.getItem('isle.profile')), 'loadMs', await page.evaluate(() => window.__game.loadMs));
+  console.log('audio', await page.evaluate(() => { const a = window.__game.audio; return { unlocked: a.isUnlocked(), state: a.ctx?.state, companion: window.__game.life.getCompanion() }; }), 'mute button', await page.evaluate(() => { const b = [...document.querySelectorAll('#hud button')].find((x) => x.getAttribute('aria-label') === 'Sound').getBoundingClientRect(); return Math.round(b.width) + 'x' + Math.round(b.height); }));
+  console.log('audio level dBFS (music + ambience after the limiter, 1 s)', await page.evaluate(async () => { const a = window.__game.audio, an = a.ctx.createAnalyser(); a.out.connect(an); const d = new Float32Array(an.fftSize); let sum = 0, n = 0; for (let i = 0; i < 10; i++) { await new Promise((r) => setTimeout(r, 100)); an.getFloatTimeDomainData(d); for (const v of d) { sum += v * v; n++; } } return (10 * Math.log10(sum / n + 1e-12)).toFixed(1); }));
   const s0 = await page.evaluate(() => ({ ...window.__game.state }));
   // drag the stick up (forward) with the left thumb, normal push of 40 px
   await page.touchscreen.touchStart(100, 600); await page.touchscreen.touchMove(100, 560);
