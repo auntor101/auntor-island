@@ -104,8 +104,8 @@ export function placeChunk(f, env, tier) {
       if (!c || c.x < f.x0 || c.x >= x1 || c.z < f.z0 || c.z >= z1) continue;
       if (s.solid) {
         if (Math.hypot(c.x - L.spawn.x, c.z - L.spawn.z) < 7 || (s.id !== 'rock' && Math.hypot(c.x - L.village.x, c.z - L.village.z) < 13)) continue;
-        if (env.keepOut && env.keepOut(c.x, c.z, s.r)) continue;
       }
+      if (env.keepOut && env.keepOut(c.x, c.z, s.r)) continue; // village footprints, roads, props, docks (registered by the village)
       let blocked = false;
       for (const aid of s.avoid || []) { // bigger plants first: stay clear of every candidate of the species in `avoid`
         const a = SPECIES_BY_ID[aid], R = a.r + s.r, m = Math.ceil(R / a.cell) + 1, cx = Math.floor(c.x / a.cell), cz = Math.floor(c.z / a.cell);
@@ -116,7 +116,6 @@ export function placeChunk(f, env, tier) {
         if (blocked) break;
       }
       if (blocked) continue;
-      if (s.id === 'grass' && env.keepOut && env.keepOut(c.x, c.z, 0.2, 'grass')) continue;
       // exact water check for anything near the shore (lattice only knows 2 m nodes)
       const m = s.water >= 2 ? 2.4 : s.nearWater ? 0 : 0.5;
       if (f.wetD[c.k] < 3 || !s.noY) {

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { heightAt, zoneAt, isWet, woods, LANDMARKS } from '../src/world/island.js';
 import { placeAll, chunkField, placeChunk, STRIDE } from '../src/world/flora/placement.js';
+import { planVillage } from '../src/world/village/layout.js';
 import { SPECIES, SPECIES_BY_ID, MAX_PER_CHUNK } from '../src/world/flora/species.js';
 
 const env = { heightAt, zoneAt, isWet, woods, landmarks: LANDMARKS };
@@ -83,4 +84,14 @@ test('a chunk is cheap enough to build on a phone', () => {
   placeAll(0, 2, env); // warm up the JIT
   const t = performance.now(); for (let i = 0; i < 6; i++) placeAll(-1 + i, 1, env);
   assert.ok((performance.now() - t) / 6 < 40, 'ms per chunk ' + ((performance.now() - t) / 6).toFixed(1));
+});
+
+test('nothing grows on the village: footprints, roads, square (real village keep-out)', () => {
+  const v = planVillage({ heightAt, isWet }), e2 = { ...env, keepOut: v.keepOut };
+  let n = 0, planted = 0;
+  for (let cx = Math.floor((v.center[0] - 40) / 32); cx <= Math.floor((v.center[0] + 40) / 32); cx++) for (let cz = Math.floor((v.center[1] - 40) / 32); cz <= Math.floor((v.center[1] + 40) / 32); cz++) {
+    const r = placeAll(cx, cz, e2);
+    for (const s of SPECIES) for (let i = 0; i < r[s.id].n; i++) { planted++; if (v.keepOut(r[s.id].data[i * STRIDE], r[s.id].data[i * STRIDE + 2], 0)) n++; }
+  }
+  assert.ok(planted > 100); assert.equal(n, 0);
 });
