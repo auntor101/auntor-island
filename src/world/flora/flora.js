@@ -23,6 +23,7 @@ const LODS = {
   grass: [{ d: 35, pools: ['grass'] }], tall: [{ d: 36, pools: ['tall'] }], reed: [{ d: 38, pools: ['reed'] }], flower: [{ d: 34, pools: ['flower'] }],
   driftwood: [{ d: 70, pools: ['driftwood'] }], shell: [{ d: 30, pools: ['shell'] }],
 };
+const FADE = 5; // metres of dithered cross-fade between LOD levels
 const CAP = { tree_a: 90, tree_b: 90, tree_c: 90, tree_l1: 700, tree_l2: 1500, pine_a: 80, pine_b: 80, pine_l1: 500, pine_l2: 700, dead: 60, dead_l2: 150, bush: 450, rock_a: 150, rock_b: 150, rock_c: 150, fern: 700, mushroom: 150, grass: 9000, tall: 3500, reed: 2500, flower: 5000, driftwood: 40, shell: 300 };
 
 class Pool {
@@ -39,11 +40,11 @@ class Pool {
     this.mesh = new Mesh(g, mat); this.mesh.frustumCulled = false; this.mesh.visible = false;
     scene.add(this.mesh);
   }
-  add(src, o, mul) {
+  add(src, o, mul, fade = 1) {
     if (this.n >= this.cap) return;
     const a = this.buf.array, k = this.n++ * STRIDE;
     for (let i = 0; i < STRIDE; i++) a[k + i] = src[o + i];
-    a[k + 4] *= mul;
+    a[k + 4] *= mul; a[k + 7] = fade; // iB.w drives the shader's LOD dither fade (the variant was already read by the caller)
   }
   flush() {
     this.geo.instanceCount = this.n; this.mesh.visible = this.n > 0;
@@ -169,7 +170,14 @@ export function createFlora(scene, { heightAt, zoneAt, isWet, getSeason, assetBa
             const L = lods[li];
             if (L.thin && d2 > L.thin[0] * L.thin[0]) { if (data[o + 5] > L.thin[1]) { li = lods.length; break; } mul = L.thin[2]; }
             const p = pools[L.pools[data[o + 7] % L.pools.length | 0]] || pools[L.pools[0]];
-            if (p) { p.add(data, o, mul); break; }
+            if (p) {
+              const nx = lods[li + 1], e = L.d - FADE;
+              if (nx && d2 > e * e && !(nx.thin && d2 > nx.thin[0] * nx.thin[0])) { // last FADE metres before the edge: dither this level out and the next one in
+                const t = Math.min(0.999, (Math.sqrt(d2) - e) / FADE), q = pools[nx.pools[data[o + 7] % nx.pools.length | 0]] || pools[nx.pools[0]];
+                p.add(data, o, mul, -(t + 0.001)); if (q) q.add(data, o, mul, t + 0.001);
+              } else p.add(data, o, mul);
+              break;
+            }
           }
         }
       }

@@ -45,9 +45,10 @@ export function foliageMaterial(shared, { map, atlas = false, recolor = false, r
     vertexShader: `
       #include <fog_pars_vertex>
       attribute vec4 iA, iB; uniform float uTime, uSway;
-      varying vec2 vUv; varying vec3 vN, vW; varying vec4 vC; varying float vSeed, vSea;
+      varying vec2 vUv; varying vec3 vN, vW; varying vec4 vC; varying float vSeed, vSea, vFade;
       ${COMMON}
       void main(){
+        vFade = iB.w;
         vec3 p = position * iB.x;
         float lift = clamp(position.y / 9., 0., 1.);
         float w = sin(uTime * 1.2 + iA.x * .21 + iA.z * .17 + iB.y * 6.28) * .5 + sin(uTime * .53 + iA.x * .07) * .5;
@@ -62,11 +63,12 @@ export function foliageMaterial(shared, { map, atlas = false, recolor = false, r
     fragmentShader: `
       #include <fog_pars_fragment>
       uniform sampler2D map; ${FRAG_UNI}
-      varying vec2 vUv; varying vec3 vN, vW; varying vec4 vC; varying float vSeed, vSea;
+      varying vec2 vUv; varying vec3 vN, vW; varying vec4 vC; varying float vSeed, vSea, vFade;
       ${COMMON}
       const vec3 LEAF[24] = vec3[24](${LEAF.flat().map(glsl).join(',')});
       vec3 ramp(int i, float b){ return b < .5 ? mix(LEAF[i], LEAF[i + 1], b * 2.) : mix(LEAF[i + 1], LEAF[i + 2], b * 2. - 1.); }
       void main(){
+        if (vFade < 1.) { float n = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715)))); if (vFade > 0. ? n >= vFade : n < -vFade) discard; } // LOD cross-fade: +f fades in, -f fades out, dithered
         vec2 u = vec2(vUv.x * 16. - 8., vUv.y * 68. - 64.);
         bool leaf = vC.r > .5;
         vec2 g1 = dFdx(u), g2 = dFdy(u), uv;
