@@ -1,0 +1,29 @@
+{
+ "atlas": {
+  "tree_a": "tree_atlas",
+  "tree_b": "tree_atlas",
+  "tree_c": "tree_atlas",
+  "tree_l1": "tree_atlas",
+  "pine_a": "pine_atlas",
+  "pine_b": "pine_atlas",
+  "pine_l1": "pine_atlas"
+ },
+ "single": {
+  "dead": "Bark_DeadTree",
+  "bush": "Leaves_TwistedTree",
+  "fern": "Leaves",
+  "shroom": "Mushrooms",
+  "rock_a": "Rocks",
+  "rock_b": "Rocks",
+  "rock_c": "Rocks"
+ },
+ "tex": {
+  "tree_atlas": "tex/tree_atlas.webp",
+  "pine_atlas": "tex/pine_atlas.webp",
+  "Bark_DeadTree": "tex/Bark_DeadTree.webp",
+  "Leaves_TwistedTree": "tex/Leaves_TwistedTree.webp",
+  "Leaves": "tex/Leaves.webp",
+  "Mushrooms": "tex/Mushrooms.webp",
+  "Rocks": "tex/Rocks.webp"
+ }
+}

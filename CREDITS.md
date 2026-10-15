@@ -23,3 +23,6 @@ Files in `assets/nature/` are the original models with embedded textures removed
 The models in `web/public/models/` are the originals with textures shrunk to at most 1024 px by `web/scripts/shrink-vrm.mjs` (the VRM extension JSON is untouched; morph-target normal deltas are dropped and the rest stored sparse). The wizard is the man model with a procedural robe, hat and staff. Ears, hat, robe, staff and beard are generated in code (`web/src/play/attachments.js`).
 | Dog (Animal Pack, `world/animals/Dog.fbx`) | Quaternius | https://opengameart.org/content/animated-animales-low-poly | CC0 1.0 (public domain) |
 | Dragon (Animated Monsters, `world/animals/Dragon.fbx`) | Quaternius | https://quaternius.com/ (Animated Monster Pack) | CC0 1.0 (public domain) |
+
+## Flora models (public/world/flora)
+Trees (CommonTree_3/4/5, Pine_4/5, DeadTree_5), Bush_Common, Fern_1, Mushroom_Common, Rock_Medium_1/2/3 and their textures are from the Quaternius "Stylized Nature MegaKit", licence CC0 1.0, obtained through the Poly Pizza mirror (poly.pizza). Shrunk by `tools/prepare-flora.mjs` (geometry only, quantised, shared 512 px WebP atlases). Grass, flowers, reeds, far-tree blobs, driftwood, shells and petals are generated in code.

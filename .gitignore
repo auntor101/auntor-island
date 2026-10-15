@@ -7,3 +7,4 @@ assets-src/
 .claude/
 .wrangler/
 graphify-out/
+vite.log
