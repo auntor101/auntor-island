@@ -15,8 +15,8 @@ const glsl = (h) => 'pow(vec3(' + hex(h).map((v) => v.toFixed(3)).join(',') + ')
 const LEAF = [
   ['#2a7a3c', '#47a83e', '#a8dc52', '#2a6e48', '#56b452', '#cde870'],
   ['#a04a20', '#ec8c22', '#ffd650', '#822a28', '#d24a30', '#f89440'],
-  ['#ec9cc0', '#f8b6d0', '#ffe8f2', '#eeaccb', '#fbcade', '#fff4f8'],
-  ['#f2a8c8', '#fcc8de', '#ffffff', '#ecb0d0', '#f9d4e8', '#fff8fe'],
+  ['#e890b8', '#f6a8c8', '#ffd8e8', '#ec9cc2', '#f8bcd6', '#ffe6f0'],
+  ['#ee9cc0', '#f8b8d2', '#ffdcec', '#e8a4c8', '#f6c4de', '#ffe8f4'],
 ];
 const GRASS = [['#1f6026', '#8cd24c'], ['#3f5a1c', '#c4b444'], ['#2b7c36', '#bce86e'], ['#2a7c4c', '#a8f0b0']];
 const FLOWER = ['#fff4dc', '#ffd23a', '#ff7fb0', '#a284ff', '#ff6a44', '#62a8ff', '#8affe4'];
