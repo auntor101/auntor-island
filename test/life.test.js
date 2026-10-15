@@ -126,3 +126,9 @@ test('createLife fails soft without a model and without a DOM', async () => {
   await life.ready;
   life.dispose();
 });
+
+test('collider test keeps animals out of boxes and circles', async () => {
+  const { clear } = await import('../src/game/companion-ui.js');
+  const box = { kind: 'box', x: 0, z: 0, hw: 2, hd: 1, rot: 0 }, cir = { kind: 'circle', x: 10, z: 0, r: 1 };
+  assert.ok(!clear(box, 1, 0.5, 0.4) && clear(box, 5, 0, 0.4) && !clear(cir, 10.5, 0, 0.4) && clear(cir, 12, 0, 0.4));
+});

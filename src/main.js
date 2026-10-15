@@ -38,7 +38,7 @@ const village = createVillage(scene, { heightAt, isWet, zoneAt });
 const flora = createFlora(scene, { heightAt, zoneAt, isWet, getSeason: () => 'auto' });
 flora.setKeepOut(village.keepOut);
 const audio = createAudio(), audioDrv = createAudioDriver(audio, water, village);
-const life = createLife(scene, { heightAt, isWet, zoneAt, isTouch: matchMedia('(pointer:coarse)').matches, onSfx: (name, o) => audio.sfx(name, o) });
+const life = createLife(scene, { heightAt, isWet, zoneAt, colliders: village.colliders, isTouch: matchMedia('(pointer:coarse)').matches, onSfx: (name, o) => audio.sfx(name, o) });
 addEventListener('pointerdown', () => audio.unlock(), { passive: true }); // iOS fallback: any first tap
 
 // One palette drives sky, fog, lights, terrain and water. It is rebuilt every frame from the hour and the snow amount.

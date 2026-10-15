@@ -6,6 +6,7 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { toonMat } from '../world/common/toon.js';
 import { LANDMARKS } from '../world/island.js';
 import { CATS, DOGS, DRAGONS, capBright, makeAnimal, stepAnimal, petAnimal, makeCompanion, stepCompanion } from './animal.js';
+import { clear } from '../game/companion-ui.js';
 
 const BASE = import.meta.env?.BASE_URL ?? '/';
 const KEY = 'auntor.life';
@@ -97,7 +98,7 @@ const tmpQ = new Quaternion(), tmpM = new Matrix4(), tmpV = new Vector3();
 const twist = (b, axis, ang) => { if (b) b.quaternion.premultiply(tmpQ.setFromAxisAngle(axis, ang)); }; // rotate a bone about an axis given in its parent's space
 const parentAxis = (bone, world) => new Vector3().copy(world).applyQuaternion(bone.parent.getWorldQuaternion(new Quaternion()).invert()); // the world axis expressed in the bone's parent space (bind pose)
 
-export function createLife(scene, { heightAt, isWet, zoneAt, onSfx = () => {}, isTouch = false, rand = Math.random } = {}) {
+export function createLife(scene, { heightAt, isWet, zoneAt, onSfx = () => {}, isTouch = false, rand = Math.random, colliders = [] } = {}) {
   const save = readSave();
   const root = new Group(); root.name = 'life';
   scene?.add?.(root);
@@ -112,7 +113,7 @@ export function createLife(scene, { heightAt, isWet, zoneAt, onSfx = () => {}, i
 
   // walkable: dry, above the shoreline, not too steep, not up the mountain
   const ok = (x, z) => {
-    if (isWet(x, z)) return false;
+    if (isWet(x, z) || !colliders.every((c) => clear(c, x, z, 0.4))) return false; // not inside a building or prop
     const h = heightAt(x, z);
     if (h < 0.2 || Math.hypot(x - LANDMARKS.village.x, z - LANDMARKS.village.z) > HOME) return false;
     if (Math.hypot(heightAt(x + 0.5, z) - h, heightAt(x, z + 0.5) - h) / 0.5 > 1.1) return false;
