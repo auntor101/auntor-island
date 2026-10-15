@@ -49,3 +49,19 @@ test('diagonal is not faster than straight', () => {
   const a = run(start(), { y: 1 }, 1, 1 / 60), d = run(start(), { x: 1, y: 1 }, 1, 1 / 60);
   assert.ok(Math.hypot(d.x, d.z) <= Math.hypot(a.x, a.z) + 0.05);
 });
+
+test('colliders: a box blocks, a fast low-fps walker does not tunnel, and it slides along the wall', () => {
+  const box = [{ kind: 'box', x: 0, z: -5, hw: 2, hd: 0.2, rot: 0 }];
+  const go = (dt) => { let s = start(); for (let t = 0; t < 4; t += dt) s = stepPlayer(s, { cameraYaw: 0, run: true, x: 0.3, y: 1 }, dt, flat, box); return s; };
+  for (const dt of [1 / 60, 1 / 20, 1 / 8]) { const s = go(dt); assert.ok(s.z > -5 + 0.2 + 0.3 || Math.abs(s.x) > 2, `dt ${dt} z ${s.z} x ${s.x}`); }
+  assert.ok(go(1 / 60).x > 0.5, 'slides sideways');
+});
+
+test('colliders: circle pushes out, rotated box works, omitted argument unchanged', () => {
+  const s = stepPlayer(start({ x: 0.1, z: 0 }), { cameraYaw: 0 }, 1 / 60, flat, [{ kind: 'circle', x: 0, z: 0, r: 1 }]);
+  assert.ok(Math.hypot(s.x, s.z) >= 1.34, `d ${Math.hypot(s.x, s.z)}`);
+  const rot = [{ kind: 'box', x: 0, z: 0, hw: 3, hd: 1, rot: Math.PI / 2 }];
+  const r = stepPlayer(start({ x: 0.5, z: 2 }), { cameraYaw: 0 }, 1 / 60, flat, rot);
+  assert.ok(Math.abs(r.x) >= 1.34 - 1e-6 || Math.abs(r.z) >= 3.34, `x ${r.x} z ${r.z}`);
+  assert.deepEqual(stepPlayer(start(), { cameraYaw: 0, y: 1 }, 1 / 60, flat), stepPlayer(start(), { cameraYaw: 0, y: 1 }, 1 / 60, flat, []));
+});
