@@ -10,7 +10,6 @@ import { skyPalette, sunDirection, moonDirection } from '../src/world/time.js';
 import { createStars } from '../src/world/stars.js';
 import { createMoon } from '../src/world/moon.js';
 import { createSnow } from '../src/world/snow.js';
-import { planVillage } from '../src/world/village/layout.js';
 import { createFlora } from '../src/world/flora/flora.js';
 
 const q = new URLSearchParams(location.search), hud = document.getElementById('hud');
@@ -25,7 +24,6 @@ const sky = createSky(), water = createWater(), terrain = createTerrainMaterial(
 scene.add(sky.mesh, stars.points, moon.group, water.mesh, snow.points);
 const flora = createFlora(scene, { heightAt, zoneAt, isWet, getSeason: () => q.get('season') || 'auto' });
 
-flora.setKeepOut(planVillage({ heightAt, isWet }).keepOut); // the village keeps its footprints, roads and square clear
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const pal = { sunDir: new Vector3(), lightDir: new Vector3() }, tmp = new Color(), fogC = new Color(), WHITE = new Color('#ffffff'), snowOn = q.get('snow') === '1';
 let snowK = snowOn ? 1 : 0;
