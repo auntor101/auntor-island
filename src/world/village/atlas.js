@@ -80,10 +80,10 @@ const PAINT = [
     [0, 43, 86].forEach((y) => { g.fillStyle = hsl(30, 40, 20, 0.6); g.fillRect(0, y, S, 3); for (let x = 0; x < S; x += 8) { g.fillStyle = hsl(36, 40, 62, 0.7); g.fillRect(x, y + 3, 2, 2); } });
   },
   (g, r) => { // cobbles
-    g.fillStyle = hsl(30, 10, 20); g.fillRect(0, 0, S, S);
+    g.fillStyle = hsl(30, 14, 36); g.fillRect(0, 0, S, S);
     for (let i = 0; i < 6; i++) for (let j = 0; j < 6; j++) {
-      const cx = (i + 0.5 + (j % 2) * 0.5) * S / 6 + (r() - 0.5) * 3, cy = (j + 0.5) * S / 6 + (r() - 0.5) * 3, rx = 8.5 + r() * 2, L = 50 + (r() - 0.5) * 22, hh = 28 + r() * 14;
-      W(g, () => { ell(g, cx, cy, rx, rx * 0.82, hsl(hh, 10, L)); ell(g, cx - 2, cy - 2.5, rx * 0.55, rx * 0.35, hsl(hh, 14, L + 16, 0.7)); g.strokeStyle = hsl(30, 10, 14, 0.7); g.lineWidth = 1.2; g.beginPath(); g.ellipse(cx, cy, rx, rx * 0.82, 0, 0, TAU); g.stroke(); });
+      const cx = (i + 0.5 + (j % 2) * 0.5) * S / 6 + (r() - 0.5) * 3, cy = (j + 0.5) * S / 6 + (r() - 0.5) * 3, rx = 8.5 + r() * 2, L = 62 + (r() - 0.5) * 18, hh = 30 + r() * 14;
+      W(g, () => { ell(g, cx, cy, rx, rx * 0.82, hsl(hh, 18, L)); ell(g, cx - 2, cy - 2.5, rx * 0.55, rx * 0.35, hsl(hh, 14, L + 16, 0.7)); g.strokeStyle = hsl(30, 14, 26, 0.6); g.lineWidth = 1.2; g.beginPath(); g.ellipse(cx, cy, rx, rx * 0.82, 0, 0, TAU); g.stroke(); });
     }
   },
   (g, r) => { // dirt

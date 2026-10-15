@@ -16,7 +16,7 @@ export function addRoad(b, pts, width, heightAt, { kind = 'dirt', lift = 0.1, st
   });
   void dirs;
   for (let i = 0; i + 1 < rows.length; i++) for (let j = 0; j < 3; j++) {
-    const o = j === 1 ? { tile, us: 2, vs: 2, col: kind === 'cobble' ? 0xfff0e0 : 0xffe8d0 } : { tile: T.stone, us: 1, vs: 1, col: 0xe8e0d8 };
+    const o = j === 1 ? { tile, us: 0.7, vs: 0.7, col: kind === 'cobble' ? 0xfff0e0 : 0xffe8d0 } : { tile: T.stone, us: 1, vs: 1, col: 0xe8e0d8 };
     o.uo = i * 0.07;
     b.quad(rows[i][j], rows[i + 1][j], rows[i + 1][j + 1], rows[i][j + 1], o);
   }
@@ -24,7 +24,7 @@ export function addRoad(b, pts, width, heightAt, { kind = 'dirt', lift = 0.1, st
 export function addDisc(b, cx, cz, r, heightAt, { lift = 0.1 } = {}) { // cobbled square
   const N = 28, rings = [0, r * 0.35, r * 0.7, r - 0.45, r], pt = (k, a) => { const x = cx + Math.cos(a) * rings[k], z = cz + Math.sin(a) * rings[k]; return [x, heightAt(x, z) + lift - (k === 4 ? 0.04 : 0), z]; };
   for (let k = 0; k < 4; k++) for (let i = 0; i < N; i++) {
-    const a0 = i / N * 6.2832, a1 = (i + 1) / N * 6.2832, o = k === 3 ? { tile: T.stone, us: 1, vs: 1, col: 0xe8e0d8 } : { tile: T.cobble, us: 2.2, vs: 2.2, col: k === 1 ? 0xe8d8c8 : 0xfff0e0, uo: i * 0.13 };
+    const a0 = i / N * 6.2832, a1 = (i + 1) / N * 6.2832, o = k === 3 ? { tile: T.stone, us: 1, vs: 1, col: 0xe8e0d8 } : { tile: T.cobble, us: 0.75, vs: 0.75, col: k === 1 ? 0xf0e0d0 : 0xfff4e8, uo: i * 0.13 };
     b.quad(pt(k, a0), pt(k, a1), pt(k + 1, a1), pt(k + 1, a0), o);
   }
 }
