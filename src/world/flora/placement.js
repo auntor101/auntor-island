@@ -86,7 +86,7 @@ function candidate(s, ix, iz, f, env) {
   if (s.alt) p *= 1 - smooth(s.alt[0], s.alt[1], h);
   if (s.patch) p *= 0.45 + 0.9 * vnoise(x / 5, z / 5, salt + 3);
   if (s.drift) p *= smooth(0.5, 0.62, vnoise(x / 10, z / 10, salt + 3));
-  if (s.clump) p *= smooth(0.3, 0.5, vnoise(x / 5, z / 5, salt + 3));
+  if (s.clump) p *= 0.3 + 0.7 * smooth(0.3, 0.5, vnoise(x / 5, z / 5, salt + 3));
   if (hash(ix, iz, salt + 2) >= p) return null;
   return { x, z, zone, h, u: hash(ix, iz, salt + 4), k };
 }

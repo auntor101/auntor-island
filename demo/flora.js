@@ -45,8 +45,8 @@ function palette(hours) { // the same maths as main.js applyPalette
 // yaw 0 looks north (-z); AT(x, z, metres above the ground, yawDeg, pitchDeg)
 const AT = (x, z, up, yaw, pitch) => [x, heightAt(x, z) + up, z, yaw, pitch];
 const VIEWS = {
-  meadow: AT(59, 65, 1.6, 200, -12), meadowclose: AT(59, 65, 0.7, 200, -20), forest: AT(-18, 51, 2.0, 40, -3), grove: AT(-69, -31, 2.0, 120, -5), groveclose: AT(-69, -31, 0.9, 120, -16),
-  beach: AT(-80, 104, 2.4, -150, -6), mountain: AT(-115, 29, 4, 80, 6), volcano: AT(60, 4, 6, -78, 0), lake: AT(-6, -12, 1.6, 0, -4),
+  meadow: AT(59, 65, 1.6, 200, -12), meadowclose: AT(59, 65, 0.7, 200, -20), forest: AT(-18, 51, 2.0, 40, -3), grove: AT(-44, -31, 3.2, 90, 2), groveclose: AT(-69, -31, 0.9, 120, -16),
+  beach: AT(-80, 104, 2.4, -150, -6), mountain: AT(-115, 29, 4, 80, 6), volcano: AT(60, 4, 6, -78, 0), lake: AT(-39, -36, 1.5, -90, -4), falls: AT(-6, -12, 1.6, 0, -4),
   aerial: [0, 190, 120, 0, -52], autumn: AT(-45, 43, 2.2, 100, -6), spring: AT(49, -53, 2.2, 190, -6), village: AT(8, 20, 2, 0, -3),
 };
 const cam = q.get('pose') ? q.get('pose').split(',').map(Number) : VIEWS[q.get('cam') || 'meadow'];

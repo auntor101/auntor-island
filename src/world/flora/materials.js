@@ -15,8 +15,8 @@ const glsl = (h) => 'pow(vec3(' + hex(h).map((v) => v.toFixed(3)).join(',') + ')
 const LEAF = [
   ['#2a7a3c', '#47a83e', '#a8dc52', '#2a6e48', '#56b452', '#cde870'],
   ['#a04a20', '#ec8c22', '#ffd650', '#822a28', '#d24a30', '#f89440'],
-  ['#dc86ae', '#f8b0cc', '#ffe8f2', '#e4a4c4', '#fbcade', '#fff4f8'],
-  ['#e69cc0', '#fcc8de', '#ffffff', '#d2a8dc', '#f6d2ee', '#fff8fe'],
+  ['#ec9cc0', '#f8b6d0', '#ffe8f2', '#eeaccb', '#fbcade', '#fff4f8'],
+  ['#f2a8c8', '#fcc8de', '#ffffff', '#ecb0d0', '#f9d4e8', '#fff8fe'],
 ];
 const GRASS = [['#1f6026', '#8cd24c'], ['#3f5a1c', '#c4b444'], ['#2b7c36', '#bce86e'], ['#2a7c4c', '#a8f0b0']];
 const FLOWER = ['#fff4dc', '#ffd23a', '#ff7fb0', '#a284ff', '#ff6a44', '#62a8ff', '#8affe4'];
@@ -89,7 +89,8 @@ export function foliageMaterial(shared, { map, atlas = false, recolor = false, r
         if (leaf) {
           float sea = (uForce >= 0. && vSea < 2.5) ? uForce : vSea;
           int s = int(sea + .5) * 6 + (fract(vSeed * 7.31) > .5 ? 3 : 0);
-          float tl = .40 + .26 * N.y + .45 * (vC.g - .75) + .12 * (fract(vSeed * 13.7) - .5) + .14 * (1. - smoothstep(.5, .95, t.a));
+          float tl = .46 + .26 * N.y + .45 * (vC.g - .75) + .12 * (fract(vSeed * 13.7) - .5) + .14 * (1. - smoothstep(.5, .95, t.a));
+          tl += sea > 1.5 ? .12 : 0.;
           float b = (smoothstep(.30, .34, tl) + smoothstep(.55, .59, tl)) * .5;
           alb = ramp(s, b) * .82;
           alb = mix(alb, alb * vec3(.86, .92, 1.08), (1. - band) * (sea < 1.5 ? 1. : .35));   // cool shade (blossom stays pink)
@@ -103,7 +104,8 @@ export function foliageMaterial(shared, { map, atlas = false, recolor = false, r
           alb *= .92 + .12 * N.y;
         #endif
         alb = mix(alb, S(vec3(.93, .96, 1.)), uSnow * smoothstep(.1, .55, N.y) * (leaf ? 1. : .6)); // snow dusting on upward faces
-        vec3 lit = uAmb * (.8 + .2 * (N.y * .5 + .5)) * .95 + uSun * (.8 * band);
+        vec3 amb = mix(uAmb, vec3(dot(uAmb, vec3(.33))) * vec3(1.04, 1., .93), .55); // sky blue would turn pink blossom lilac: warm the shade
+        vec3 lit = amb * (.8 + .2 * (N.y * .5 + .5)) * .95 + uSun * (.8 * band);
         vec3 col = alb * lit;
         col += uSun * pow(1. - max(dot(N, V), 0.), 3.) * smoothstep(-.2, .4, nd) * (leaf ? .13 : .04); // rim
         gl_FragColor = vec4(min(col, vec3(.85)), 1.);

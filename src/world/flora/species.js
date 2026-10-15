@@ -27,7 +27,7 @@ const RAW = [
     zones: { meadow: 0.9, forest: 0.4, grove: 0.8, village: 0.6, roost: 0.45, cove: 0.5, mountain: 0.12, lake: 0.8, river: 0.8 } },
   { id: 'tall', tier: 2, r: 0.3, cell: 1.5, jit: 0.8, scale: [0.9, 1.5], slope: 1.0, water: 1, noY: 1,
     zones: { beach: 0.3, cove: 0.55, lake: 0.6, river: 0.6, meadow: 0.1, forest: 0.1, roost: 0.15 } },
-  { id: 'reed', tier: 2, r: 0.3, cell: 1.5, jit: 0.8, scale: [0.9, 1.5], slope: 0.6, water: 1, nearWater: 2, noY: 1, clump: 1,
+  { id: 'reed', tier: 2, r: 0.3, cell: 1.5, jit: 0.8, scale: [0.9, 1.5], slope: 0.9, water: 1, nearWater: 2, noY: 1, clump: 1,
     zones: { cove: 0.85, lake: 0.95, river: 0.8, beach: 0.18, meadow: 0.5, forest: 0.4, village: 0.4, grove: 0.4 } },
   { id: 'flower', tier: 2, r: 0.1, cell: 0.8, jit: 0.9, scale: [0.8, 1.3], slope: 0.8, water: 1, drift: 1, noY: 1,
     zones: { meadow: 0.6, grove: 0.7, village: 0.35, forest: 0.08, roost: 0.2, cove: 0.15, lake: 0.3, river: 0.3 } },

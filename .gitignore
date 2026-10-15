@@ -6,3 +6,4 @@ shots/
 assets-src/
 .claude/
 .wrangler/
+vite.log
