@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<link rel="icon" href="data:,">
+<title>Auntor Island - audio demo</title>
+<style>
+:root { --cream:#fff7ea; --ink:#2a1f3d; --coral:#ff7a59; }
+* { box-sizing:border-box; }
+body { margin:0; padding:10px 12px 24px; background:var(--cream); color:var(--ink); font:700 13px system-ui, sans-serif; }
+h1 { font-size:16px; margin:0 0 8px; }
+section { border:2px solid var(--ink); border-radius:14px; padding:8px 10px; margin:0 0 10px; }
+label { display:flex; align-items:center; gap:8px; min-height:30px; }
+label span { width:78px; flex:none; }
+input[type=range] { flex:1; min-width:0; accent-color:var(--coral); }
+button { min-height:44px; padding:0 12px; border:2px solid var(--ink); border-radius:12px; background:var(--cream); color:var(--ink); font:inherit; box-shadow:0 2px 0 var(--ink); }
+#sfx { display:flex; flex-wrap:wrap; gap:6px; }
+#sfx button { min-height:36px; padding:0 8px; font-size:12px; }
+#top { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+#status { flex:1; font-size:12px; }
+</style>
+</head>
+<body>
+<h1>Audio demo</h1>
+<div id="top"><button id="unlock">Unlock audio</button><span id="mute"></span><span id="status">locked</span></div>
+<section id="ctx"></section>
+<section><div id="sfx"></div></section>
+<script type="module" src="./audio.js"></script>
+</body>
+</html>
