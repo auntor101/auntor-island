@@ -16,6 +16,7 @@ import { loadCharacter } from './play/roster.js';
 import { CHARS, load as loadProfile, save as saveProfile, sanitizeName } from './profile.js';
 import { createSelect } from './ui/select.js';
 import { createVillage } from './world/village/village.js';
+import { createFlora } from './world/flora/flora.js';
 import { createLife } from './life/index.js';
 import { createAudio, createAudioButton } from './audio/index.js';
 import { createAudioDriver } from './game/audio-driver.js';
@@ -34,6 +35,8 @@ const sky = createSky(), water = createWater(), terrain = createTerrainMaterial(
 const stars = createStars(), moon = createMoon(), snow = createSnow(camera);
 scene.add(sky.mesh, stars.points, moon.group, water.mesh, snow.points);
 const village = createVillage(scene, { heightAt, isWet, zoneAt });
+const flora = createFlora(scene, { heightAt, zoneAt, isWet, getSeason: () => 'auto' });
+flora.setKeepOut(village.keepOut);
 const audio = createAudio(), audioDrv = createAudioDriver(audio, water, village);
 const life = createLife(scene, { heightAt, isWet, zoneAt, isTouch: matchMedia('(pointer:coarse)').matches, onSfx: (name, o) => audio.sfx(name, o) });
 addEventListener('pointerdown', () => audio.unlock(), { passive: true }); // iOS fallback: any first tap
@@ -205,6 +208,7 @@ startLoop((dt, now, rawMs) => {
   snow.update(now / 1000, snowK, px, tmp.set('#8fa4d8').lerp(WHITE, day));
   chunks.update(cp);
   village.update(dt, pal, cp);
+  flora.update(cp, state ? { x: state.x, y: state.y, z: state.z } : null, dt, pal, camera);
   sky.mesh.position.copy(cp);
   water.update(pal, now / 1000, camera.position);
 
