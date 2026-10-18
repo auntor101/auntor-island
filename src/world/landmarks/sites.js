@@ -69,7 +69,7 @@ function fit(I, avoid, placed, tx, tz, spec) {
   let best = null;
   for (let dx = -s; dx <= s; dx += 3) for (let dz = -s; dz <= s; dz += 3) {
     const x = tx + dx, z = tz + dz, d = hyp(dx, dz);
-    if (d > s + 0.1 || (spec.minH && H(x, z) < spec.minH) || (spec.maxH && H(x, z) > spec.maxH) || (spec.gentle && (Math.abs(H(x + 3, z) - H(x - 3, z)) > 1.7 || Math.abs(H(x, z + 3) - H(x, z - 3)) > 1.7)) || avoid(x, z, R * 0.7) || placed.some((p) => hyp(p.x - x, p.z - z) < p.r + R + 2)) continue;
+    if (d > s + 0.1 || (spec.minH && H(x, z) < spec.minH) || (spec.maxH && H(x, z) > spec.maxH) || (spec.gentle && (Math.abs(H(x + 3, z) - H(x - 3, z)) > 1.7 || Math.abs(H(x, z + 3) - H(x, z - 3)) > 1.7)) || placed.some((p) => hyp(p.x - x, p.z - z) < p.r + R + 2)) continue;
     let lo = 1e9, hi = -1e9, bad = false;
     for (let a = 0; a < 8 && !bad; a++) for (const f of [0, 0.5, 1]) {
       const px = x + Math.cos(a * PI / 4) * R * f, pz = z + Math.sin(a * PI / 4) * R * f, h = H(px, pz);
@@ -78,12 +78,19 @@ function fit(I, avoid, placed, tx, tz, spec) {
     }
     if (bad || hi - lo > spec.tol) continue;
     const sc = (hi - lo) * 0.7 + d * (spec.dw || 0.15);
-    if (!best || sc < best.sc) best = { sc, x, z };
+    if ((!best || sc < best.sc) && !avoid(x, z, R * 0.7)) best = { sc, x, z };
   }
   return best;
 }
 
+const memo = new WeakMap(); // paths and the landmark meshes ask with the same village keepOut: plan once
 export function planSites(I, avoid = () => false, vc = [-7, 12]) {
+  if (memo.has(avoid)) return memo.get(avoid);
+  const out = plan(I, avoid, vc);
+  memo.set(avoid, out);
+  return out;
+}
+function plan(I, avoid, vc) {
   const M = LANDMARKS.mountain, V = LANDMARKS.volcano, toward = (p, k) => { const d = hyp(vc[0] - p.x, vc[1] - p.z); return { x: p.x + (vc[0] - p.x) / d * k, z: p.z + (vc[1] - p.z) / d * k }; };
   const T = { grove: LANDMARKS.grove, academy: { x: -35, z: -2 }, arena: { x: -74, z: -19 }, hatchery: { x: -62, z: -32 }, springs: { x: -45, z: 80 }, tower: LANDMARKS.tower, embers: toward(V, 38), icecave: toward(M, 26) };
   const sites = [];

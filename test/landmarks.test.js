@@ -8,7 +8,7 @@ const env = { heightAt, isWet, zoneAt }, V = planVillage(env), P = planSites(env
 
 test('deterministic', () => {
   const j = (p) => JSON.stringify([p.sites, p.rings, p.info]);
-  assert.equal(j(planSites(env, V.keepOut, V.center)), j(P));
+  assert.equal(j(planSites(env, (x, z, r) => V.keepOut(x, z, r), V.center)), j(P));
 });
 
 test('eight sites: dry, clear of the village and of each other', () => {
