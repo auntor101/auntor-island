@@ -16,7 +16,7 @@ export const LANDMARK_INFO = [ // x, z are filled in by planSites (info)
 ];
 
 // Shared footprint numbers (the meshes read the same ones). Local frame: +z faces the village, x is to the right.
-export const ARENA = { a: 10, b: 13, segs: 24, thick: 2.4, gateHalf: 2.2 }; // semi-axes along local x and z; the gates are at +-z
+export const ARENA = { a: 10, b: 13, segs: 24, thick: 4.2, gateHalf: 2.2 }; // semi-axes along local x and z; the gates are at +-z
 export const POOLS = [[-5, -2, 2.6], [5, -2, 2.6], [0, 2.8, 2.3]]; // x, z, rim radius
 export const TREES = [60, 180, 300].map((d) => [Math.sin(d * PI / 180) * 6, Math.cos(d * PI / 180) * 6]);
 export const ACADEMY = { yard: 8, hallZ: -13, hallW: 15, hallD: 5.6 };
@@ -31,11 +31,20 @@ const SPECS = {
   springs: { r: 12, tol: 2.6, search: 24, entry: [0, 8.5] },
   tower: { r: 7, tol: 3.2, search: 24, entry: [0, 8.5] },
   embers: { r: 8, tol: 8, search: 26, entry: [0, 7], minH: 10, maxH: 32 },
-  icecave: { r: 5, tol: 7, search: 50, entry: [0, 6.5], minH: 14, maxH: 75, gentle: 1, dw: 0.8 },
+  icecave: { r: 5, tol: 7, search: 30, entry: [0, 6.5], minH: 14, maxH: 75, gentle: 1, dw: 0.8 },
 };
 
 const toW = (s, lx, lz) => [s.x + lx * Math.cos(s.rot) + lz * Math.sin(s.rot), s.z - lx * Math.sin(s.rot) + lz * Math.cos(s.rot)];
 export const EMBER_ROCKS = [[-5, -3, 1.4], [4, -5, 1.6], [6, 2, 1.2], [-3, 5, 1.3], [0, -7, 1.5], [-7, 1, 1.1]];
+
+// The arena wall as chords of the ellipse: midpoint, length, box yaw, and whether the segment is a gate gap.
+export function arenaWalls() {
+  const { a, b, segs, gateHalf } = ARENA;
+  return Array.from({ length: segs }, (_, i) => {
+    const t0 = i / segs * 2 * PI, t1 = (i + 1) / segs * 2 * PI, x0 = Math.sin(t0) * a, z0 = Math.cos(t0) * b, x1 = Math.sin(t1) * a, z1 = Math.cos(t1) * b, mx = (x0 + x1) / 2, mz = (z0 + z1) / 2;
+    return { t0, t1, mx, mz, len: hyp(x1 - x0, z1 - z0), rot: Math.atan2(-(z1 - z0), x1 - x0), gate: Math.abs(mx) < gateHalf + 1 && Math.abs(mz) > b * 0.9 };
+  });
+}
 
 // Colliders in the landmark's local frame (same shapes as village.colliders).
 export function localColliders(id) {
@@ -44,12 +53,8 @@ export function localColliders(id) {
     const A = ACADEMY; box(0, A.hallZ, A.hallW / 2, A.hallD / 2, 0, 'hall');
     for (let i = 0; i < 6; i++) { const t = (i + 0.5) / 6 * 2 * PI + 0.5; circ(Math.sin(t) * (A.yard + 0.6), Math.cos(t) * (A.yard + 0.6), 0.3, 'pole'); }
   } else if (id === 'arena') {
-    const { a, b, segs, thick, gateHalf } = ARENA;
-    for (let i = 0; i < segs; i++) {
-      const t0 = i / segs * 2 * PI, t1 = (i + 1) / segs * 2 * PI, x0 = Math.sin(t0) * a, z0 = Math.cos(t0) * b, x1 = Math.sin(t1) * a, z1 = Math.cos(t1) * b;
-      if (Math.abs((x0 + x1) / 2) < gateHalf + 1 && Math.abs(z0 + z1) > b) continue; // the gate gaps
-      box((x0 + x1) / 2, (z0 + z1) / 2, hyp(x1 - x0, z1 - z0) / 2 + 0.1, thick / 2, Math.atan2(-(z1 - z0), x1 - x0), 'wall');
-    }
+    const { a, b, thick, gateHalf } = ARENA;
+    for (const w of arenaWalls()) if (!w.gate) box(w.mx, w.mz, w.len / 2 + 0.1, thick / 2, w.rot, 'wall');
     for (const sz of [-1, 1]) for (const sx of [-1, 1]) circ(sx * (gateHalf + 0.5), sz * (b + 0.4), 0.8, 'gate');
   } else if (id === 'hatchery') {
     circ(0, -3, 4.2, 'dome'); circ(0, 3.5, 1.9, 'nest');
@@ -65,9 +70,10 @@ export function localColliders(id) {
 
 // Best dry, gentle, free spot for a footprint near (tx, tz): flatter and closer wins.
 function fit(I, avoid, placed, tx, tz, spec) {
-  const { heightAt: H, isWet: Wt } = I, R = spec.r, s = spec.search || 0;
+  const { heightAt: H, isWet: Wt } = I, // already memoised on a 1.5 m lattice by plan()
+  R = spec.r, s = spec.search || 0;
   let best = null;
-  for (let dx = -s; dx <= s; dx += 3) for (let dz = -s; dz <= s; dz += 3) {
+  for (let dx = -s; dx <= s; dx += 4.5) for (let dz = -s; dz <= s; dz += 4.5) {
     const x = tx + dx, z = tz + dz, d = hyp(dx, dz);
     if (d > s + 0.1 || (spec.minH && H(x, z) < spec.minH) || (spec.maxH && H(x, z) > spec.maxH) || (spec.gentle && (Math.abs(H(x + 3, z) - H(x - 3, z)) > 1.7 || Math.abs(H(x, z + 3) - H(x, z - 3)) > 1.7)) || placed.some((p) => hyp(p.x - x, p.z - z) < p.r + R + 2)) continue;
     let lo = 1e9, hi = -1e9, bad = false;
@@ -75,6 +81,7 @@ function fit(I, avoid, placed, tx, tz, spec) {
       const px = x + Math.cos(a * PI / 4) * R * f, pz = z + Math.sin(a * PI / 4) * R * f, h = H(px, pz);
       if (Wt(px, pz) || h < 0.8) { bad = true; break; }
       lo = Math.min(lo, h); hi = Math.max(hi, h);
+      if (hi - lo > spec.tol) { bad = true; break; }
     }
     if (bad || hi - lo > spec.tol) continue;
     const sc = (hi - lo) * 0.7 + d * (spec.dw || 0.15);
@@ -90,14 +97,16 @@ export function planSites(I, avoid = () => false, vc = [-7, 12]) {
   memo.set(avoid, out);
   return out;
 }
-function plan(I, avoid, vc) {
+function plan(I0, avoid, vc) {
+  const hc = new Map(), wc = new Map(), q = (x) => Math.round(x / 1.5); // the search samples the same lattice points again and again: cache them
+  const I = { ...I0, heightAt: (x, z) => { const k = q(x) * 100003 + q(z); let v = hc.get(k); if (v === undefined) hc.set(k, v = I0.heightAt(q(x) * 1.5, q(z) * 1.5)); return v; }, isWet: (x, z) => { const k = q(x) * 100003 + q(z); let v = wc.get(k); if (v === undefined) wc.set(k, v = I0.isWet(q(x) * 1.5, q(z) * 1.5)); return v; } };
   const M = LANDMARKS.mountain, V = LANDMARKS.volcano, toward = (p, k) => { const d = hyp(vc[0] - p.x, vc[1] - p.z); return { x: p.x + (vc[0] - p.x) / d * k, z: p.z + (vc[1] - p.z) / d * k }; };
-  const T = { grove: LANDMARKS.grove, academy: { x: -35, z: -2 }, arena: { x: -74, z: -19 }, hatchery: { x: -62, z: -32 }, springs: { x: -45, z: 80 }, tower: LANDMARKS.tower, embers: toward(V, 38), icecave: toward(M, 26) };
+  const T = { grove: LANDMARKS.grove, academy: { x: -35, z: -2 }, arena: { x: -74, z: -19 }, hatchery: { x: -62, z: -32 }, springs: { x: -45, z: 80 }, tower: LANDMARKS.tower, embers: toward(V, 38), icecave: { x: M.x - 48, z: M.z + 24 } };
   const sites = [];
   for (const id of ['grove', 'arena', 'hatchery', 'academy', 'springs', 'tower', 'embers', 'icecave']) {
     const sp = SPECS[id], t = T[id], f = fit(I, avoid, sites, t.x, t.z, sp) || fit(I, avoid, sites, t.x, t.z, { ...sp, search: (sp.search || 6) + 24, tol: sp.tol * 1.6 });
     if (!f) throw new Error('landmarks: no site for ' + id);
-    sites.push({ id, x: f.x, z: f.z, r: sp.r, rot: id === 'icecave' ? Math.atan2(f.x - M.x, f.z - M.z) : Math.atan2(vc[0] - f.x, vc[1] - f.z) }); // the ice mouth looks downhill, the rest face the village
+    sites.push({ id, x: f.x, z: f.z, r: sp.r, rot: Math.atan2(vc[0] - f.x, vc[1] - f.z) }); // every landmark faces the village
   }
   for (const s of sites) {
     [s.ex, s.ez] = toW(s, ...SPECS[s.id].entry);

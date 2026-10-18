@@ -17,6 +17,7 @@ import { CHARS, load as loadProfile, save as saveProfile, sanitizeName } from '.
 import { createSelect } from './ui/select.js';
 import { createVillage } from './world/village/village.js';
 import { createFlora } from './world/flora/flora.js';
+import { createLandmarks } from './world/landmarks/landmarks.js';
 import { createBirds } from './world/birds.js';
 import { createLife } from './life/index.js';
 import { createAudio, createAudioButton } from './audio/index.js';
@@ -38,6 +39,7 @@ const sky = createSky(), water = createWater(), terrain = createTerrainMaterial(
 const stars = createStars(), moon = createMoon(), snow = createSnow(camera);
 scene.add(sky.mesh, stars.points, moon.group, water.mesh, snow.points);
 const village = createVillage(scene, { heightAt, isWet, zoneAt });
+const landmarks = createLandmarks(scene, { heightAt, isWet, zoneAt, village }); // adds its colliders and flora keep-out to village
 const flora = createFlora(scene, { heightAt, zoneAt, isWet, getSeason: () => 'auto' });
 let paths = null, map = null; // built a moment after the first frame (the A* takes 100 to 500 ms on a phone); flora re-seeds once it is ready
 flora.setKeepOut(village.keepOut);
@@ -222,7 +224,7 @@ startLoop((dt, now, rawMs) => {
   moon.update(totalHours, phaseOf(), base.moon * (1 - 0.5 * snowK));
   snow.update(now / 1000, snowK, px, tmp.set('#8fa4d8').lerp(WHITE, day));
   chunks.update(cp);
-  village.update(dt, pal, cp);
+  village.update(dt, pal, cp); landmarks.update(dt, pal, cp);
   paths?.update(pal);
   flora.update(cp, state ? { x: state.x, y: state.y, z: state.z } : null, dt, pal, camera);
   if (!rehomed && now > 4000 && flora.stats().ready) { rehomed = true; birds.rehome(); }

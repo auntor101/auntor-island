@@ -63,3 +63,17 @@ test('trails reach every landmark: its signpost place is near the entry and the 
   }
   assert.ok(N.poi.rings);
 });
+
+test('meshes: few draw calls, light triangles, colliders and keep-out join the village', async () => {
+  const { createLandmarks } = await import('../src/world/landmarks/landmarks.js');
+  const village = { layout: V, colliders: V.colliders.slice(), keepOut: V.keepOut }, n0 = village.colliders.length;
+  const lm = createLandmarks({ add() {} }, { ...env, village });
+  assert.ok(lm.stats.calls < 25, 'calls ' + lm.stats.calls);
+  assert.ok(lm.stats.tris < 80000, 'tris ' + lm.stats.tris);
+  assert.equal(village.colliders.length, n0 + lm.colliders.length);
+  const s = lm.sites[0];
+  assert.ok(village.keepOut(s.x, s.z, 0) && !V.keepOut(s.x, s.z, 0));
+  for (const id of Object.keys(lm.stats.perSite)) assert.ok(lm.stats.perSite[id] > 200, id + ' has geometry');
+  lm.update(0.016, { stars: 1 }, { x: s.x, z: s.z + 10 }); // night tick near a site runs the particle updates
+  console.log('landmarks', JSON.stringify(lm.stats));
+});
