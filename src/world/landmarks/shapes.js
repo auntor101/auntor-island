@@ -151,12 +151,13 @@ export function icecave(m) {
   m.drape(0, 0, 0, 7, 0xeef6ff, 20, 3, 0.07);
   m.drape(0, -1.5, 0, 2.5, 0xdff0fb, 12, 1, 0.1);
   // the mound: faceted lumps of ice round a tunnel 3.2 m wide
-  [[-3.6, -1.6, 3.2, 0], [3.6, -1.6, 3.2, 1], [0, -2.0, 3.8, 2, 5.2], [-1.8, -5.0, 3.4, 3], [2.0, -4.8, 3.2, 4], [0, -6.0, 3.6, 5, 2.0], [-4.8, 1.4, 1.9, 6], [4.8, 1.4, 1.9, 7]].forEach(([x, z, r, i, dy = 1.2]) => {
-    m.ball(r, 1, x, y0 + dy, z, i % 2 ? ICE : ICE2, { sy: 1.15, ry: i * 0.7 });
+  [[-3.6, -1.6, 3.2, 0], [3.6, -1.6, 3.2, 1], [0, -2.4, 3.8, 2, 6.4], [-1.8, -5.0, 3.4, 3], [2.0, -4.8, 3.2, 4], [0, -6.0, 3.6, 5, 2.0], [-4.8, 1.4, 1.9, 6], [4.8, 1.4, 1.9, 7]].forEach(([x, z, r, i, dy = 1.2]) => {
+    m.ball(r, 1, x, y0 + dy, z, i % 2 ? 0x9ed3f0 : 0x7fc0ea, { sy: 1.15, ry: i * 0.7 });
   });
   for (let k = 0; k < 7; k++) { // arch of ice blocks on posts
     const t = PI * (k + 0.5) / 7, x = Math.cos(t) * 2.0, y = y0 + 1.7 + Math.sin(t) * 1.75;
-    m.box(1.15, 0.8, 1.7, x, y, 2.0, k % 2 ? 0xe6f6ff : ICE, { rz: t + PI / 2 });
+    m.box(1.15, 0.8, 1.7, x, y, 2.0, k % 2 ? 0xffffff : 0xe6f6ff, { rz: t + PI / 2 });
+    m.box(0.9, 0.12, 0.3, Math.cos(t) * 1.55, y0 + 1.7 + Math.sin(t) * 1.3, 2.9, [0.6, 1.5, 2.8], { rz: t + PI / 2, to: 'glow' }); // glowing lip so the mouth reads
   }
   m.box(0.8, 1.9, 1.7, -2.0, y0 + 0.8, 2.0, ICE); m.box(0.8, 1.9, 1.7, 2.0, y0 + 0.8, 2.0, ICE);
   m.box(3.4, 3.2, 0.3, 0, y0 + 1.6, -4.6, 0x1c2a44); // dark back wall

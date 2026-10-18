@@ -116,11 +116,11 @@ function plan(I0, avoid, vc) {
   const keepOut = (x, z, r = 0) => sites.some((s) => hyp(x - s.x, z - s.z) < s.r + 1.5 + r);
   let rings = null; // the loop nearest the academy/village midpoint whose rings clear every roof and landmark
   const mid = { x: (ac.x + vc[0]) / 2, z: (ac.z + vc[1]) / 2 }, cands = [];
-  for (let dx = -60; dx <= 60; dx += 6) for (let dz = -60; dz <= 60; dz += 6) cands.push([dx, dz]);
+  for (let dx = -90; dx <= 90; dx += 6) for (let dz = -90; dz <= 90; dz += 6) cands.push([dx, dz]);
   cands.sort((p, q) => hyp(...p) - hyp(...q));
   for (const [dx, dz] of cands) {
     const r = raceCourse(I.heightAt, { x: mid.x + dx, z: mid.z + dz });
-    if (r.every((q) => !avoid(q.x, q.z, 7) && !keepOut(q.x, q.z, 4) && !I.isWet(q.x, q.z))) { rings = r; break; }
+    if (r.every((q) => !avoid(q.x, q.z, 5) && !keepOut(q.x, q.z, 4) && !I.isWet(q.x, q.z) && I.heightAt(q.x, q.z) > 2.5)) { rings = r; break; }
   }
   if (!rings) throw new Error('landmarks: no room for the race rings');
   const rc = { x: rings.reduce((a, q) => a + q.x, 0) / rings.length, z: rings.reduce((a, q) => a + q.z, 0) / rings.length };
@@ -130,7 +130,7 @@ function plan(I0, avoid, vc) {
 
 // Eight rings in a gently wavy loop: { x, y, z, nx, nz }, (nx, nz) = flight direction through the ring, radius RING_R.
 export const RING_R = 3.2;
-export function raceCourse(H, c, n = 8, rad = 22) {
+export function raceCourse(H, c, n = 8, rad = 18) {
   const pts = Array.from({ length: n }, (_, i) => { const t = i / n * 2 * PI; return { x: c.x + Math.cos(t) * rad * 1.15, z: c.z + Math.sin(t) * rad * 0.8 }; });
   return pts.map((p, i) => {
     const q = pts[(i + 1) % n], d = hyp(q.x - p.x, q.z - p.z);

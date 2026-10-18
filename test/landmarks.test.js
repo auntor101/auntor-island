@@ -77,3 +77,12 @@ test('meshes: few draw calls, light triangles, colliders and keep-out join the v
   lm.update(0.016, { stars: 1 }, { x: s.x, z: s.z + 10 }); // night tick near a site runs the particle updates
   console.log('landmarks', JSON.stringify(lm.stats));
 });
+
+test('walkable doors: the arena gates, the arena floor and the ice-cave tunnel stay open', () => {
+  const free = (x, z) => P.colliders.every((c) => c.kind === 'circle' ? Math.hypot(x - c.x, z - c.z) > c.r + 0.35 : (() => { const co = Math.cos(c.rot), si = Math.sin(c.rot), ax = x - c.x, az = z - c.z, lx = ax * co - az * si, lz = ax * si + az * co; return Math.abs(lx) > c.hw + 0.35 || Math.abs(lz) > c.hd + 0.35; })());
+  const at = (s, lx, lz) => [s.x + lx * Math.cos(s.rot) + lz * Math.sin(s.rot), s.z - lx * Math.sin(s.rot) + lz * Math.cos(s.rot)];
+  const a = P.byId.arena, ic = P.byId.icecave;
+  for (const lz of [-16, -13.4, -10, 0, 10, 13.4, 16]) assert.ok(free(...at(a, 0, lz)), 'arena lane z=' + lz);
+  for (const lz of [4, 2, 0, -2, -3]) assert.ok(free(...at(ic, 0, lz)), 'ice tunnel z=' + lz);
+  assert.ok(!free(...at(a, 10, 0)), 'the arena wall is solid');
+});
