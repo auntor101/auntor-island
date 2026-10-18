@@ -2,7 +2,7 @@
 // Graph node: { id, who, text, choices?: [{ text, next, set? }], next?, once?, set? }. {name} in text is replaced by the player name.
 const KEY = 'isle.story.v1', RE_ID = /^[\w.:-]{1,40}$/, KEEP = 4;
 
-export const fill = (text, name) => String(text).replace(/\{name\}/g, () => name || 'Traveler');
+export const fill = (text, name, pet) => String(text).replace(/\{name\}/g, () => name || 'Traveler').replace(/\{pet\}/g, () => pet || 'friend');
 
 // Whatever came out of storage is untrusted: keep only well-formed flags, met ids and counts.
 export function sanitizeState(raw) {
@@ -62,6 +62,7 @@ export function createConversation(graph, startId, store, name) {
 // ctx: { hours, snow (0..1), near (landmark id or null), name, comp, met (times met) }.
 export function lineWeight(l, ctx) {
   let w = l.w ?? 1;
+  if (l.c === 'comp' && !ctx.comp) return 0; // companion lines need a companion
   if (l.h) { const [a, b] = l.h, h = ((ctx.hours % 24) + 24) % 24; if (!(a <= b ? h >= a && h < b : h >= a || h < b)) return 0; w *= 3; }
   if (l.snow != null) { if ((ctx.snow > 0.3) !== l.snow) return 0; if (l.snow) w *= 4; }
   if (l.near != null) { if (ctx.near !== l.near) return 0; w *= 6; }
@@ -82,5 +83,5 @@ export function pickBanter(npcId, pool, ctx, store, rand = Math.random) {
   let r = rand() * cands.reduce((a, [, w]) => a + w, 0), pick = cands[cands.length - 1][0];
   for (const [i, w] of cands) { r -= w; if (r < 0) { pick = i; break; } }
   hist.push(pick); if (hist.length > KEEP) hist.shift();
-  return { id: pick, text: fill(pool[pick].t, ctx.name), c: pool[pick].c };
+  return { id: pick, text: fill(pool[pick].t, ctx.name, ctx.comp), c: pool[pick].c };
 }

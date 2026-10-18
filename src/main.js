@@ -24,6 +24,7 @@ import { createAudioDriver } from './game/audio-driver.js';
 import { createPaths } from './world/paths/render.js';
 import { createMap } from './ui/map.js';
 import { spawnPoint, createPetUi, pullCamera } from './game/companion-ui.js';
+import { createNpcs } from './world/npcs/index.js';
 
 const gl = createRenderer(document.getElementById('gl'));
 const scene = new Scene();
@@ -38,6 +39,7 @@ const sky = createSky(), water = createWater(), terrain = createTerrainMaterial(
 const stars = createStars(), moon = createMoon(), snow = createSnow(camera);
 scene.add(sky.mesh, stars.points, moon.group, water.mesh, snow.points);
 const village = createVillage(scene, { heightAt, isWet, zoneAt });
+const npcs = createNpcs(scene, village, { heightAt, isWet, camera, audio: { sfx: (n, o) => audio.sfx(n, o) }, env: () => ({ state, life, hours: totalHours % 24, snow: snowK, comp: life.getCompanion() }) }); // before flora and life: they keep clear of people
 const flora = createFlora(scene, { heightAt, zoneAt, isWet, getSeason: () => 'auto' });
 let paths = null, map = null; // built a moment after the first frame (the A* takes 100 to 500 ms on a phone); flora re-seeds once it is ready
 flora.setKeepOut(village.keepOut);
@@ -223,6 +225,7 @@ startLoop((dt, now, rawMs) => {
   snow.update(now / 1000, snowK, px, tmp.set('#8fa4d8').lerp(WHITE, day));
   chunks.update(cp);
   village.update(dt, pal, cp);
+  npcs.update(dt);
   paths?.update(pal);
   flora.update(cp, state ? { x: state.x, y: state.y, z: state.z } : null, dt, pal, camera);
   if (!rehomed && now > 4000 && flora.stats().ready) { rehomed = true; birds.rehome(); }

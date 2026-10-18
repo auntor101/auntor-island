@@ -50,7 +50,7 @@ Personality: booming, vain, generous, narrates himself in third person, comic-st
 - "Premiere tonight. Yes, again. It is always tonight."
 - "I only do my own stunts. The rest I do with dignity."
 
-**Dax Orrel** - Tall man, swept auburn hair, leather coat, always posed for a camera that is not there. Action star, "Cliffhanger Jones".
+**Dax Orrel** - Tall man, swept auburn hair, leather coat, always posed for a camera that is not there. Action star, "Thunder Mop".
 - "I once jumped off a building. It was a short building."
 - "Another sequel? Don't worry, I read the first one."
 - "Post-credit scene in my life: me, still standing here."
