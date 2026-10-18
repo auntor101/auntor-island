@@ -81,6 +81,7 @@ export function createNpcs(scene, village, { heightAt, isWet, camera, audio, env
   hudEl.append(style, btn);
 
   const M = new Matrix4(), Q = new Quaternion(), V = new Vector3(), S = new Vector3(), E = new Euler();
+  const hooks = {}; // quests plug in here: talk(id, ui, who, name) -> true when it spoke, mark(id) -> show a '!'
   let t = 0, selT = 0, started = false, near = null, talking = null, lines = 0, loadMs = 0;
 
   async function loadModels() {
@@ -109,7 +110,8 @@ export function createNpcs(scene, village, { heightAt, isWet, camera, audio, env
       if (first && c.first) {
         const cv2 = createConversation(c.first, 'start', store, nameNow());
         while (!cv2.done) { const k = await ui.say(who, cv2.node.text, cv2.node.choices?.map((x) => x.text)); if (k < 0) break; cv2.choose(k); }
-      } else {
+        await hooks.talk?.(id, ui, who, nameNow());
+      } else if (!(await hooks.talk?.(id, ui, who, nameNow()))) {
         const ctx = { hours: e.hours, snow: e.snow, near: nearLandmark(e.state), name: nameNow(), comp: e.comp, met };
         const l = pickBanter(id, [...(c.banter || []), ...SHARED], ctx, store);
         if (l) await ui.say(who, l.text, null);
@@ -175,7 +177,7 @@ export function createNpcs(scene, village, { heightAt, isWet, camera, audio, env
     }
     // '!' markers over people you have not met yet
     const pos = mk.geometry.attributes.position;
-    npcs.forEach((n, i) => { const on = !store.met(n.def.id) && n.dist < 40 && talking !== n; pos.setXYZ(i, n.x, on ? n.y + n.h + 0.95 + Math.sin(t * 3 + n.phase) * 0.08 : -999, n.z); });
+    npcs.forEach((n, i) => { const on = (!store.met(n.def.id) || hooks.mark?.(n.def.id)) && n.dist < 40 && talking !== n; pos.setXYZ(i, n.x, on ? n.y + n.h + 0.95 + Math.sin(t * 3 + n.phase) * 0.08 : -999, n.z); });
     pos.needsUpdate = true;
     if (!st) return;
     // Talk button: the nearest person within 2.5 m, unless a wild animal (Pet) is closer
@@ -186,7 +188,7 @@ export function createNpcs(scene, village, { heightAt, isWet, camera, audio, env
     if (talking && talking.dist > LEAVE_R) ui.close();
   }
 
-  const api = { update, npcs, camera, stand, markers: mk, store, ui, talk: (id) => talk(npcs.find((n) => n.def.id === id)), get loadMs() { return loadMs; }, get full() { return npcs.filter((n) => n.full).length; } };
+  const api = { update, npcs, hooks, camera, stand, markers: mk, store, ui, talk: (id) => talk(npcs.find((n) => n.def.id === id)), get loadMs() { return loadMs; }, get full() { return npcs.filter((n) => n.full).length; } };
   globalThis.__npcs = api;
   return api;
 }

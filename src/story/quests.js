@@ -88,8 +88,8 @@ export function compassTarget(state, where, from, quests = QUESTS) {
 }
 
 // Where collectables of a step sit: count dry spots, seeded so a reload puts them in the same places. at: place id, r metres round it, or line: [a, b] evenly spaced.
-export function itemSpots(step, where, heightAt, isWet, seed = 1) {
-  const n = needOf(step), out = [];
+export function itemSpots(step, where, heightAt, isWet0, seed = 1, free = () => true) {
+  const n = needOf(step), out = [], isWet = (x, z) => isWet0(x, z) || !free(x, z); // free(x, z): clear of buildings and props
   let r = seed * 9301 + 49297;
   const rnd = () => (r = (r * 16807) % 2147483647) / 2147483647;
   if (step.line) {

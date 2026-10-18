@@ -26,6 +26,7 @@ import { createPaths } from './world/paths/render.js';
 import { createMap } from './ui/map.js';
 import { spawnPoint, createPetUi, pullCamera } from './game/companion-ui.js';
 import { createNpcs } from './world/npcs/index.js';
+import { createQuests } from './game/quests.js';
 
 const gl = createRenderer(document.getElementById('gl'));
 const scene = new Scene();
@@ -48,6 +49,7 @@ flora.setKeepOut(village.keepOut);
 const birds = createBirds(scene, { heightAt, isWet, center: LANDMARKS.village, nearTree: (x, z) => flora.solidAt(x, z, 3) });
 const audio = createAudio(), audioDrv = createAudioDriver(audio, water, village);
 const life = createLife(scene, { heightAt, isWet, zoneAt, colliders: village.colliders, solid: flora.solidAt, isTouch: matchMedia('(pointer:coarse)').matches, onSfx: (name, o) => audio.sfx(name, o) });
+const quests = createQuests({ scene, hud: document.getElementById('hud'), npcs, landmarks, village, life, audio, map: () => map, heightAt, isWet, env: () => ({ state, hours: totalHours % 24, comp: life.getCompanion() }) });
 addEventListener('pointerdown', () => audio.unlock(), { passive: true }); // iOS fallback: any first tap
 
 // One palette drives sky, fog, lights, terrain and water. It is rebuilt every frame from the hour and the snow amount.
@@ -138,7 +140,7 @@ const blob = (() => {
 })();
 let hero = null, controls = null, follow = null, state = null, heroId = '';
 const inp = { x: 0, y: 0, run: false, cameraYaw: 0 };
-const game = window.__game = { bot: null, village, life, paths: null, birds, audio, get state() { return state; }, get cam() { return follow; } }; // bot = { x, y, run } overrides the controls (tests, screenshots)
+const game = window.__game = { bot: null, get quests() { return quests.api; }, village, life, paths: null, birds, audio, get state() { return state; }, get cam() { return follow; } }; // bot = { x, y, run } overrides the controls (tests, screenshots)
 
 async function startGame(char, name, comp) {
   const t0 = performance.now();
@@ -227,7 +229,7 @@ startLoop((dt, now, rawMs) => {
   snow.update(now / 1000, snowK, px, tmp.set('#8fa4d8').lerp(WHITE, day));
   chunks.update(cp);
   village.update(dt, pal, cp); landmarks.update(dt, pal, cp);
-  npcs.update(dt);
+  npcs.update(dt); quests.update(dt);
   paths?.update(pal);
   flora.update(cp, state ? { x: state.x, y: state.y, z: state.z } : null, dt, pal, camera);
   if (!rehomed && now > 4000 && flora.stats().ready) { rehomed = true; birds.rehome(); }

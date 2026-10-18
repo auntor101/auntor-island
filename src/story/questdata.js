@@ -81,7 +81,7 @@ export const QUESTS = [
       { type: 'talk', target: 'oat', text: 'Tell Granny Oat', card: true, say: ['Five letters? Say them softly, dear. It likes that.'] }] },
 ];
 
-export const CARD = { word: 'LUMEN', title: 'The secret word', lines: ['You found every star the island had to give.', 'Say LUMEN to the owner for a surprise.'], handle: '@101auntojje', note: 'Thanks for playing Auntor Island. Find me on Instagram.' };
+export const CARD = { word: 'LUMEN', title: 'The secret word', lines: ['You collected enough stars to open the globe.', 'Say LUMEN to the owner for a surprise.'], handle: '@101auntojje', note: 'Thanks for playing Auntor Island. Find me on Instagram.' };
 
 // Companion remarks, short. when: start (quest taken), step (a step done), done (quest done), land (arrived at a landmark).
 export const COMP = {
