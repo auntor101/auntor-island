@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CAST, SHARED, NEAR_IDS } from '../src/story/cast.js';
+import { QUESTS, CARD, COMP } from '../src/story/questdata.js';
 import { DEFS } from '../src/world/npcs/defs.js';
 import { createConversation, createStore, lineWeight } from '../src/story/dialogue.js';
 
@@ -25,6 +26,14 @@ const has = (text, w) => new RegExp(`(^|[^a-z])${w.replace(/[-\s]/g, '[-\\s]')}(
 const allLines = () => {
   const out = SHARED.map((l) => ['shared', l.t]);
   for (const [id, c] of Object.entries(CAST)) { for (const l of c.banter) out.push([id, l.t]); for (const n of c.first) { out.push([id + ':' + n.id, n.text]); for (const ch of n.choices || []) out.push([id + ':choice', ch.text]); } }
+  const flat = (v) => (typeof v === 'string' ? [v] : Array.isArray(v) ? v : v && typeof v === 'object' ? Object.values(v).flatMap(flat) : []);
+  for (const q of QUESTS) {
+    const put = (k, v) => flat(v).forEach((t) => out.push(['quest:' + q.id + ':' + k, t]));
+    put('title', q.title); put('offer', q.offer); put('accept', q.accept); put('hint', q.hint); put('reward', q.reward.title);
+    for (const s of q.steps) { put('text', s.text); put('say', s.say); put('arrive', s.arrive); for (const x of Object.values(s.qs || {})) { put('q', x.q); put('opts', x.opts); } }
+  }
+  for (const k of ['title', 'lines', 'note']) flat(CARD[k]).forEach((t) => out.push(['card:' + k, t]));
+  for (const [c, pools] of Object.entries(COMP)) for (const [w, a] of Object.entries(pools)) a.forEach((t) => out.push(['comp:' + c + ':' + w, t]));
   return out;
 };
 
