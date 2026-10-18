@@ -45,7 +45,7 @@ test('drawn moon stays low enough for the follow camera to see it', async () => 
   for (let h = 0; h < 24; h += 0.25) {
     const m = moonSkyDirection(h), t = moonDirection(h);
     assert.ok(Math.abs(Math.hypot(...m) - 1) < 1e-9);
-    assert.ok(m[1] <= 0.27, 'altitude under about 17 degrees');
+    assert.ok(m[1] <= 0.17, 'altitude under about 17 degrees');
     assert.equal(m[1] > 0, t[1] > 0);
   }
 });

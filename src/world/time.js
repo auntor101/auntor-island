@@ -4,9 +4,9 @@ const dir = (a) => { const x = Math.cos(a), y = Math.sin(a), n = Math.hypot(x, y
 export const sunDirection = (h) => dir((h - 6) / 24 * 2 * Math.PI);
 export const moonDirection = (h) => sunDirection(h).map((v) => -v);
 
-// Where the moon is DRAWN: the follow camera only looks down to about +25 degrees, so the true path (70 degrees at midnight) is never on screen. Squash the climb; lighting still uses moonDirection.
+// Where the moon is DRAWN: the follow camera only looks down to about +10 degrees, so the true path (70 degrees at midnight) is never on screen. Squash the climb; lighting still uses moonDirection.
 export const moonSkyDirection = (h) => {
-  const [x, y, z] = moonDirection(h), a = Math.asin(y) * (y > 0 ? 0.22 : 1), c = Math.cos(a) / Math.hypot(x, z);
+  const [x, y, z] = moonDirection(h), a = Math.asin(y) * (y > 0 ? 0.12 : 1), c = Math.cos(a) / Math.hypot(x, z);
   return [x * c, Math.sin(a), z * c];
 };
 
