@@ -1,6 +1,6 @@
 import { Scene, PerspectiveCamera, HemisphereLight, DirectionalLight, Fog, Color, Vector3, Mesh, PlaneGeometry, MeshBasicMaterial, CanvasTexture } from 'three';
 import { createRenderer, startLoop } from './render/renderer.js';
-import { heightAt, isWet, zoneAt, LAKE } from './world/island.js';
+import { heightAt, isWet, zoneAt, waterSurfaceAt, LAKE } from './world/island.js';
 import { ChunkManager, createTerrainMaterial } from './world/terrain.js';
 import { createSky } from './world/sky.js';
 import { skyPalette, sunDirection, moonDirection } from './world/time.js';
@@ -20,6 +20,8 @@ import { createFlora } from './world/flora/flora.js';
 import { createLife } from './life/index.js';
 import { createAudio, createAudioButton } from './audio/index.js';
 import { createAudioDriver } from './game/audio-driver.js';
+import { createPaths } from './world/paths/render.js';
+import { createMap } from './ui/map.js';
 import { spawnPoint, createPetUi, pullCamera } from './game/companion-ui.js';
 
 const gl = createRenderer(document.getElementById('gl'));
@@ -36,6 +38,7 @@ const stars = createStars(), moon = createMoon(), snow = createSnow(camera);
 scene.add(sky.mesh, stars.points, moon.group, water.mesh, snow.points);
 const village = createVillage(scene, { heightAt, isWet, zoneAt });
 const flora = createFlora(scene, { heightAt, zoneAt, isWet, getSeason: () => 'auto' });
+let paths = null, map = null; // built a moment after the first frame (the A* takes 100 to 500 ms on a phone); flora re-seeds once it is ready
 flora.setKeepOut(village.keepOut);
 const audio = createAudio(), audioDrv = createAudioDriver(audio, water, village);
 const life = createLife(scene, { heightAt, isWet, zoneAt, colliders: village.colliders, isTouch: matchMedia('(pointer:coarse)').matches, onSfx: (name, o) => audio.sfx(name, o) });
@@ -129,13 +132,13 @@ const blob = (() => {
 })();
 let hero = null, controls = null, follow = null, state = null, heroId = '';
 const inp = { x: 0, y: 0, run: false, cameraYaw: 0 };
-const game = window.__game = { bot: null, village, life, audio, get state() { return state; }, get cam() { return follow; } }; // bot = { x, y, run } overrides the controls (tests, screenshots)
+const game = window.__game = { bot: null, village, life, paths: null, audio, get state() { return state; }, get cam() { return follow; } }; // bot = { x, y, run } overrides the controls (tests, screenshots)
 
 async function startGame(char, name, comp) {
   const t0 = performance.now();
-  hero = await loadCharacter(char);
+  hero = await loadCharacter(char); await pathsReady;
   heroId = char; scene.add(hero.root);
-  const at = village.anchors[{ feast: 'feastStreet', dock: 'harbourDock', hall: 'greatHall' }[params.get('at')] || params.get('at')], sp = at ? { x: at.x, z: at.z } : params.get('at') === 'lake' ? { x: LAKE.x + 6, z: LAKE.z + LAKE.r - 6 } : spawnPoint(village, heightAt, isWet); // ?at=feast|dock|hall|lake|<anchor> for screenshots
+  const poi = paths && paths.net.poi[params.get('at')], at = poi ? { x: poi.x + 3, z: poi.z + 3 } : village.anchors[{ feast: 'feastStreet', dock: 'harbourDock', hall: 'greatHall' }[params.get('at')] || params.get('at')], sp = at ? { x: at.x, z: at.z } : params.get('at') === 'lake' ? { x: LAKE.x + 6, z: LAKE.z + LAKE.r - 6 } : spawnPoint(village, heightAt, isWet); // ?at=feast|dock|hall|lake|<anchor> for screenshots
   if (comp) life.setCompanion(comp);
   state = { x: sp.x, z: sp.z, y: heightAt(sp.x, sp.z), heading: 0, speed: 0 };
   pet.show(true);
@@ -147,6 +150,13 @@ async function startGame(char, name, comp) {
   game.loadMs = Math.round(performance.now() - t0);
 }
 
+const pathsReady = new Promise((done) => setTimeout(() => {
+  paths = createPaths(scene, village.layout, { heightAt, isWet, zoneAt, waterSurfaceAt });
+  game.paths = paths;
+  flora.setKeepOut((x, z, r = 0) => village.keepOut(x, z, r) || paths.keepOut(x, z, r)); // no trees or bushes on trails
+  map = createMap(hud, { net: paths.net, heightAt, zoneAt, isWet, onTravel: (x, z) => { state.x = x; state.z = z; state.y = heightAt(x, z); state.speed = 0; } });
+  done();
+}, 300));
 const pet = createPetUi(hud, cv, camera, life, () => state);
 const profile = loadProfile(localStorage);
 const compParam = ['dragon', 'dog', 'cat'].includes(params.get('comp')) ? params.get('comp') : null;
@@ -171,6 +181,8 @@ startLoop((dt, now, rawMs) => {
     state = stepPlayer(state, inp, dt, heightAt, village.colliders);
     follow.update(state, c.lookDX || 0, c.lookDY || 0, dt);
     pullCamera(camera, state, village.colliders, heightAt);
+    const deck = paths?.groundAt(state.x, state.z); if (deck != null) state.y = deck; // walk over the plank bridges
+    map?.update(state, follow.yaw);
     hero.update(dt, state.speed);
     hero.root.position.set(state.x, state.y, state.z);
     hero.root.rotation.y = state.heading + Math.PI; // the models face +z, the player heading 0 faces -z
@@ -185,6 +197,7 @@ startLoop((dt, now, rawMs) => {
     x += (-Math.sin(yaw) * cy * f + Math.cos(yaw) * r) * v;
     y += (Math.sin(pitch) * f + (keys.has('Space') ? 1 : 0) - (keys.has('KeyC') ? 1 : 0)) * v;
     z += (-Math.cos(yaw) * cy * f - Math.sin(yaw) * r) * v;
+    map?.update({ x, z }, yaw);
     camera.position.set(x, Math.max(y, heightAt(x, z) + 2), z);
     camera.rotation.set(pitch, yaw, 0, 'YXZ');
   } else { // behind the start card: a slow orbit round the spawn
@@ -208,6 +221,7 @@ startLoop((dt, now, rawMs) => {
   snow.update(now / 1000, snowK, px, tmp.set('#8fa4d8').lerp(WHITE, day));
   chunks.update(cp);
   village.update(dt, pal, cp);
+  paths?.update(pal);
   flora.update(cp, state ? { x: state.x, y: state.y, z: state.z } : null, dt, pal, camera);
   sky.mesh.position.copy(cp);
   water.update(pal, now / 1000, camera.position);
@@ -218,6 +232,7 @@ startLoop((dt, now, rawMs) => {
   if (acc > 0.25 && !panel.hidden) {
     acc = 0;
     const s = gl.stats();
-    panel.textContent = `fps ${s.fps}\ncalls (all passes) ${s.calls}\ntris (all passes) ${s.triangles}\npr ${s.pixelRatio.toFixed(2)}\nchunks ${chunks.built}/${chunks.wanted}\nchar ${heroId || '-'}`;
+    const ps = paths?.stats || {}; panel.textContent = `paths ${ps.tris} tris, ${ps.calls} calls, built ${Math.round(ps.buildMs)} ms
+fps ${s.fps}\ncalls (all passes) ${s.calls}\ntris (all passes) ${s.triangles}\npr ${s.pixelRatio.toFixed(2)}\nchunks ${chunks.built}/${chunks.wanted}\nchar ${heroId || '-'}`;
   }
 });

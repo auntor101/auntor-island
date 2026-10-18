@@ -8,3 +8,4 @@ assets-src/
 .wrangler/
 graphify-out/
 vite.log
+scratch/
