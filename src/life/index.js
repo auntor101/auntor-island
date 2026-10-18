@@ -5,7 +5,7 @@ import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { toonMat } from '../world/common/toon.js';
 import { LANDMARKS } from '../world/island.js';
-import { CATS, DOGS, DRAGONS, capBright, makeAnimal, stepAnimal, petAnimal, makeCompanion, stepCompanion } from './animal.js';
+import { CATS, DOGS, DRAGONS, capBright, makeAnimal, stepAnimal, petAnimal, makeCompanion, stepCompanion, separate } from './animal.js';
 import { clear } from '../game/companion-ui.js';
 
 const BASE = import.meta.env?.BASE_URL ?? '/';
@@ -98,7 +98,7 @@ const tmpQ = new Quaternion(), tmpM = new Matrix4(), tmpV = new Vector3();
 const twist = (b, axis, ang) => { if (b) b.quaternion.premultiply(tmpQ.setFromAxisAngle(axis, ang)); }; // rotate a bone about an axis given in its parent's space
 const parentAxis = (bone, world) => new Vector3().copy(world).applyQuaternion(bone.parent.getWorldQuaternion(new Quaternion()).invert()); // the world axis expressed in the bone's parent space (bind pose)
 
-export function createLife(scene, { heightAt, isWet, zoneAt, onSfx = () => {}, isTouch = false, rand = Math.random, colliders = [] } = {}) {
+export function createLife(scene, { heightAt, isWet, zoneAt, onSfx = () => {}, isTouch = false, rand = Math.random, colliders = [], solid = () => false } = {}) {
   const save = readSave();
   const root = new Group(); root.name = 'life';
   scene?.add?.(root);
@@ -107,13 +107,14 @@ export function createLife(scene, { heightAt, isWet, zoneAt, onSfx = () => {}, i
   const views = [];   // population: {kind, breed, st, holder, obj, mixer, ...}
   const comps = {};   // companion views by kind, built on demand
   let compKind = save.comp, comp = makeCompanion(0, 0), compPlaced = false, clock = 0, night = false, forceNight = null, lastTap = -9, attackT = 0;
+  const sepList = [], sepPlayer = { x: 0, z: 0, r: 0.5, fixed: true };
   const emotes = []; // active emotes: {sprite, owner, t, life, rise}
   const pool = [];
   let sprites = null;
 
   // walkable: dry, above the shoreline, not too steep, not up the mountain
   const ok = (x, z) => {
-    if (isWet(x, z) || !colliders.every((c) => clear(c, x, z, 0.4))) return false; // not inside a building or prop
+    if (isWet(x, z) || !colliders.every((c) => clear(c, x, z, 0.4)) || solid(x, z, 0.3)) return false; // not inside a building, prop, trunk or rock
     const h = heightAt(x, z);
     if (h < 0.2 || Math.hypot(x - LANDMARKS.village.x, z - LANDMARKS.village.z) > HOME) return false;
     if (Math.hypot(heightAt(x + 0.5, z) - h, heightAt(x, z + 0.5) - h) / 0.5 > 1.1) return false;
@@ -196,7 +197,7 @@ export function createLife(scene, { heightAt, isWet, zoneAt, onSfx = () => {}, i
       if (!ok(x, z)) return;
       const v = makeView(kind, breed);
       if (!v) return;
-      v.st = makeAnimal(kind, x, z, rand); v.top = (kind === 'cat' ? 0.45 : 0.7) * breed.scale; v.id = views.length;
+      v.st = makeAnimal(kind, x, z, rand); v.st.r = (kind === 'cat' ? 0.3 : 0.45) * breed.scale; v.top = (kind === 'cat' ? 0.45 : 0.7) * breed.scale; v.id = views.length;
       views.push(v);
     };
     if (models.Cat) for (let i = 0; i < nCats; i++) make('cat', cats[i % cats.length]);
@@ -339,6 +340,12 @@ export function createLife(scene, { heightAt, isWet, zoneAt, onSfx = () => {}, i
       drawCompanion(cv, dt, p, cp);
     }
     updateEmotes(dt);
+    // soft separation (applies from the next frame): animals, the companion and the player push apart; the player never moves
+    let n = 0;
+    for (const v of views) if (v.holder.visible && v.st.mode !== 'sleep') sepList[n++] = v.st;
+    if (cv) { comp.r = 0.45; sepList[n++] = comp; }
+    sepPlayer.x = p.x; sepPlayer.z = p.z; sepList[n++] = sepPlayer;
+    separate(sepList, n, ok);
     if (shadows) { shadows.count = shadowN; shadows.instanceMatrix.needsUpdate = true; }
   }
 

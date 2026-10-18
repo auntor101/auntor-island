@@ -149,3 +149,20 @@ export function stepCompanion(c, dt, p, ok, rand) {
   c.lookT -= dt; // idle: glance around now and then
   if (c.lookT <= 0) { c.look = (rand() - 0.5) * 2.2; c.lookT = 1.5 + rand() * 2.5; }
 }
+
+// ---- Soft separation ----
+// Pairwise push-apart for bodies { x, z, r } (animals, the companion, the player). Each pair closer than a.r + b.r moves apart by half the overlap each,
+// except fixed bodies (b.fixed) which never move. Cheap O(n^2): fine for about 20. okMove(x, z) vetoes a push onto a bad spot. No allocation.
+export function separate(list, n, okMove, strength = 0.5) {
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+    const a = list[i], b = list[j];
+    let dx = b.x - a.x, dz = b.z - a.z;
+    const d2 = dx * dx + dz * dz, R = a.r + b.r;
+    if (d2 >= R * R) continue;
+    let d = Math.sqrt(d2);
+    if (d < 1e-4) { dx = Math.cos(i * 2.4 + j); dz = Math.sin(i * 2.4 + j); d = 0; } // exactly stacked: pick a stable direction
+    const push = (R - d) * strength, ux = dx / (d || 1) * push, uz = dz / (d || 1) * push, wa = a.fixed ? 0 : b.fixed ? 1 : 0.5, wb = a.fixed ? 1 : b.fixed ? 0 : 0.5;
+    if (wa && okMove(a.x - ux * wa * 2, a.z - uz * wa * 2)) { a.x -= ux * wa * 2; a.z -= uz * wa * 2; }
+    if (wb && okMove(b.x + ux * wb * 2, b.z + uz * wb * 2)) { b.x += ux * wb * 2; b.z += uz * wb * 2; }
+  }
+}

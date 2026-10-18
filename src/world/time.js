@@ -4,6 +4,12 @@ const dir = (a) => { const x = Math.cos(a), y = Math.sin(a), n = Math.hypot(x, y
 export const sunDirection = (h) => dir((h - 6) / 24 * 2 * Math.PI);
 export const moonDirection = (h) => sunDirection(h).map((v) => -v);
 
+// Where the moon is DRAWN: the follow camera only looks down to about +25 degrees, so the true path (70 degrees at midnight) is never on screen. Squash the climb; lighting still uses moonDirection.
+export const moonSkyDirection = (h) => {
+  const [x, y, z] = moonDirection(h), a = Math.asin(y) * (y > 0 ? 0.22 : 1), c = Math.cos(a) / Math.hypot(x, z);
+  return [x * c, Math.sin(a), z * c];
+};
+
 // [hour, zenith, horizon, sunColor (moonlight at night), sunIntensity, ambient, fog, stars, moon]
 const NIGHT = ['#0b1236', '#27386f', '#9db4ff', 0.55, '#6580c8', '#27386f', 1, 1];
 const KEYS = [
