@@ -6,6 +6,7 @@ import { BufferGeometry, Float32BufferAttribute, Mesh, Group, CanvasTexture, Dou
 import { toonMat } from '../common/toon.js';
 import { buildPaths, NC, CELL, HALF } from './network.js';
 
+const flipU = (r) => [r[2], r[1], r[0], r[3]]; // the back face of a board reads the same way round
 const hash = (a, b) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
@@ -23,11 +24,11 @@ class MB { // tiny mesh builder: flat-shaded quads, vertex colour (rgba) and atl
     this.i.push(o, o + 1, o + 2);
   }
   // box centred on (cx, cz), bottom at y0, local axes rotated by yaw about y (local +z = (sin yaw, cos yaw)). front = uv for the +z face, rest = uv for others.
-  box(cx, y0, cz, sx, sy, sz, yaw, col, rest, front = rest, top = rest) {
+  box(cx, y0, cz, sx, sy, sz, yaw, col, rest, front = rest, top = rest, back = rest) {
     const s = Math.sin(yaw), k = Math.cos(yaw), hx = sx / 2, hz = sz / 2, y1 = y0 + sy;
     const W = (lx, y, lz) => [cx + lx * k + lz * s, y, cz - lx * s + lz * k], N = (lx, ly, lz) => [lx * k + lz * s, ly, -lx * s + lz * k];
     this.quad(W(-hx, y0, hz), W(hx, y0, hz), W(hx, y1, hz), W(-hx, y1, hz), N(0, 0, 1), col, front);
-    this.quad(W(hx, y0, -hz), W(-hx, y0, -hz), W(-hx, y1, -hz), W(hx, y1, -hz), N(0, 0, -1), col, rest);
+    this.quad(W(hx, y0, -hz), W(-hx, y0, -hz), W(-hx, y1, -hz), W(hx, y1, -hz), N(0, 0, -1), col, back);
     this.quad(W(hx, y0, hz), W(hx, y0, -hz), W(hx, y1, -hz), W(hx, y1, hz), N(1, 0, 0), col, rest);
     this.quad(W(-hx, y0, -hz), W(-hx, y0, hz), W(-hx, y1, hz), W(-hx, y1, -hz), N(-1, 0, 0), col, rest);
     this.quad(W(-hx, y1, hz), W(hx, y1, hz), W(hx, y1, -hz), W(-hx, y1, -hz), N(0, 1, 0), col, top);
@@ -139,14 +140,14 @@ export function createPaths(scene, L, env) {
     pb.box(x, y + tall, z, 0.28, 0.1, 0.28, 0, WOOD, plain);
     list.forEach((o, k) => {
       const yaw = Math.atan2(-o.d[1], o.d[0]), by = y + tall - 1.05 - k * 0.42, len = 1.5, h = 0.34, cxm = x + o.d[0] * (len / 2 + 0.1), czm = z + o.d[1] * (len / 2 + 0.1);
-      const bm = pb.box(cxm, by, czm, len, h, 0.06, yaw, jit(BOARD, k, x), plain, cellOf[o.to]);
+      const bm = pb.box(cxm, by, czm, len, h, 0.06, yaw, jit(BOARD, k, x), plain, cellOf[o.to], plain, flipU(cellOf[o.to]));
       const hx = len / 2, hz = 0.03, tipL = 0.3, ym = by + h / 2, col = jit(BOARD, k + 3, z);
       pb.tri(bm.W(hx, by, hz), bm.W(hx + tipL, ym, hz), bm.W(hx, by + h, hz), bm.N(0, 0, 1), col, [plain[0], plain[1]]);
       pb.tri(bm.W(hx, by, -hz), bm.W(hx, by + h, -hz), bm.W(hx + tipL, ym, -hz), bm.N(0, 0, -1), col, [plain[0], plain[1]]);
     });
     // name plate on top, turned toward the first trail
     const fx = faceX - x, fz = faceZ - z, yaw = Math.atan2(fx, fz), top = y + tall - 0.28;
-    pb.box(x + Math.sin(yaw) * 0.14, top, z + Math.cos(yaw) * 0.14, 1.5, 0.4, 0.06, yaw, jit(BOARD, 9, x + z), plain, cellOf[ownId]);
+    pb.box(x + Math.sin(yaw) * 0.14, top, z + Math.cos(yaw) * 0.14, 1.5, 0.4, 0.06, yaw, jit(BOARD, 9, x + z), plain, cellOf[ownId], plain, flipU(cellOf[ownId]));
   };
   const signs = [];
   for (const q of net.pois) {
