@@ -1,6 +1,6 @@
 import { Scene, PerspectiveCamera, HemisphereLight, DirectionalLight, Fog, Color, Vector3, Mesh, PlaneGeometry, MeshBasicMaterial, CanvasTexture } from 'three';
 import { createRenderer, startLoop } from './render/renderer.js';
-import { heightAt, isWet, zoneAt, LAKE } from './world/island.js';
+import { heightAt, isWet, zoneAt, LAKE, LANDMARKS } from './world/island.js';
 import { ChunkManager, createTerrainMaterial } from './world/terrain.js';
 import { createSky } from './world/sky.js';
 import { skyPalette, sunDirection, moonDirection } from './world/time.js';
@@ -17,6 +17,7 @@ import { CHARS, load as loadProfile, save as saveProfile, sanitizeName } from '.
 import { createSelect } from './ui/select.js';
 import { createVillage } from './world/village/village.js';
 import { createFlora } from './world/flora/flora.js';
+import { createBirds } from './world/birds.js';
 import { createLife } from './life/index.js';
 import { createAudio, createAudioButton } from './audio/index.js';
 import { createAudioDriver } from './game/audio-driver.js';
@@ -37,6 +38,7 @@ scene.add(sky.mesh, stars.points, moon.group, water.mesh, snow.points);
 const village = createVillage(scene, { heightAt, isWet, zoneAt });
 const flora = createFlora(scene, { heightAt, zoneAt, isWet, getSeason: () => 'auto' });
 flora.setKeepOut(village.keepOut);
+const birds = createBirds(scene, { heightAt, isWet, center: LANDMARKS.village, nearTree: (x, z) => flora.solidAt(x, z, 3) });
 const audio = createAudio(), audioDrv = createAudioDriver(audio, water, village);
 const life = createLife(scene, { heightAt, isWet, zoneAt, colliders: village.colliders, solid: flora.solidAt, isTouch: matchMedia('(pointer:coarse)').matches, onSfx: (name, o) => audio.sfx(name, o) });
 addEventListener('pointerdown', () => audio.unlock(), { passive: true }); // iOS fallback: any first tap
@@ -129,7 +131,7 @@ const blob = (() => {
 })();
 let hero = null, controls = null, follow = null, state = null, heroId = '';
 const inp = { x: 0, y: 0, run: false, cameraYaw: 0 };
-const game = window.__game = { bot: null, village, life, audio, get state() { return state; }, get cam() { return follow; } }; // bot = { x, y, run } overrides the controls (tests, screenshots)
+const game = window.__game = { bot: null, village, life, birds, audio, get state() { return state; }, get cam() { return follow; } }; // bot = { x, y, run } overrides the controls (tests, screenshots)
 
 async function startGame(char, name, comp) {
   const t0 = performance.now();
@@ -163,7 +165,7 @@ else if (!fly) {
   });
 }
 
-let acc = 0;
+let acc = 0, rehomed = false;
 startLoop((dt, now, rawMs) => {
   if (hero) {
     const c = game.bot || controls.read();
@@ -209,6 +211,8 @@ startLoop((dt, now, rawMs) => {
   chunks.update(cp);
   village.update(dt, pal, cp);
   flora.update(cp, state ? { x: state.x, y: state.y, z: state.z } : null, dt, pal, camera);
+  if (!rehomed && now > 4000 && flora.stats().ready) { rehomed = true; birds.rehome(); }
+  birds.update(dt, totalHours, state);
   sky.mesh.position.copy(cp);
   water.update(pal, now / 1000, camera.position);
 
