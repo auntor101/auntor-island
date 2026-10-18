@@ -30,8 +30,11 @@ Goals (to be proven on a real phone): 60 fps flagship, at least 45 mid-range; ab
 - Names are shown with `textContent` only. Storage reads are try/catch and validated. Third-party assets only if their licence is verified.
 - Content rules: PG-13, no gore, fictional names for characters and politics, nothing aimed at real people or at festivals and their communities. The death screen is slapstick: "You died successfully. Wanna try again?".
 
+## Code map (graphify)
+A free code graph of `src/` lives in `graphify-out/` (git-ignored; rebuilt by git hooks or `graphify update src`). Ask it before reading files: `graphify query "what calls stepPlayer" --graph graphify-out/graph.json`, `graphify explain "createLife"`, `graphify path "main.js" "createWater"`. Install: `pip install graphifyy` (CLI `graphify`). `graphify-out/GRAPH_REPORT.md` lists the module communities.
+
 ## Known gaps
-No village or props yet, no companion, cats, dragon, quests, sound, venues, festivals, analytics; real-phone performance unverified. See the roadmap.
+Village, flora, animals, companion and sound exist. Still missing: trails and minimap (in progress), dragon-island landmarks, cast and quests, riding, vehicles and crash screen, festivals, analytics; real-phone performance unverified. See the roadmap.
 
 ## Deploy
 Cloudflare Pages/Workers builds with `node tools/build-site.js` (runs `vite build`) and serves `dist/` using `wrangler.jsonc`; GitHub Pages serves the same `dist/` from the `gh-pages` branch. Never publish the repo root.
