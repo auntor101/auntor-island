@@ -132,3 +132,15 @@ test('collider test keeps animals out of boxes and circles', async () => {
   const box = { kind: 'box', x: 0, z: 0, hw: 2, hd: 1, rot: 0 }, cir = { kind: 'circle', x: 10, z: 0, r: 1 };
   assert.ok(!clear(box, 1, 0.5, 0.4) && clear(box, 5, 0, 0.4) && !clear(cir, 10.5, 0, 0.4) && clear(cir, 12, 0, 0.4));
 });
+
+import { separate } from '../src/life/animal.js';
+test('separate pushes overlapping animals apart, never moves fixed bodies, respects okMove, handles stacked', () => {
+  const a = { x: 0, z: 0, r: 0.5 }, b = { x: 0.2, z: 0, r: 0.5 }, p = { x: 5, z: 0, r: 0.5, fixed: true }, q = { x: 5.3, z: 0, r: 0.5 };
+  for (let i = 0; i < 20; i++) separate([a, b, p, q], 4, () => true);
+  assert.ok(Math.hypot(a.x - b.x, a.z - b.z) >= 0.95);
+  assert.equal(p.x, 5); assert.ok(q.x - p.x >= 0.95);
+  const c = { x: 1, z: 1, r: 0.5 }, d = { x: 1, z: 1, r: 0.5 };
+  separate([c, d], 2, () => true); assert.ok(Math.hypot(c.x - d.x, c.z - d.z) > 0.1);
+  const e = { x: 0, z: 0, r: 0.5 }, f = { x: 0.2, z: 0, r: 0.5 };
+  separate([e, f], 2, () => false); assert.equal(e.x, 0); assert.equal(f.x, 0.2);
+});

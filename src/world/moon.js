@@ -1,5 +1,5 @@
 import { Group, Mesh, PlaneGeometry, ShaderMaterial, Vector3 } from 'three';
-import { moonDirection } from './time.js';
+import { moonSkyDirection } from './time.js';
 
 // One quad = glow + disc. Disc radius is 1/4 of the quad; the lit side comes from the phase uniform; craters are cell noise.
 export function createMoon() {
@@ -50,7 +50,7 @@ export function createMoon() {
     group,
     // call after group.position follows the camera
     update(hours, phase, visibility) {
-      d.fromArray(moonDirection(hours));
+      d.fromArray(moonSkyDirection(hours));
       mesh.position.copy(d).multiplyScalar(380);
       mesh.lookAt(group.position);
       const a = phase * 2 * Math.PI; // 0 new, .5 full; waxing is lit on the right

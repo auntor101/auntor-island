@@ -9,7 +9,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { woods, LANDMARKS } from '../island.js';
 import { chunksAround, chunkKey, CHUNK } from '../chunks.js';
 import { chunkField, placeChunk, seasonAt, STRIDE } from './placement.js';
-import { TIER_RANGE } from './species.js';
+import { TIER_RANGE, SPECIES_BY_ID } from './species.js';
 import { createUniforms, foliageMaterial, grassMaterial, flowerMaterial, petalMaterial } from './materials.js';
 import { grassClump, reedClump, flower, treeFar, pineFar, deadFar, driftwood, shell, withCrown } from './geometry.js';
 
@@ -215,6 +215,17 @@ export function createFlora(scene, { heightAt, zoneAt, isWet, getSeason, assetBa
         const amount = Math.max(g * 0.9, belt) * (1 - snowK), pu = petalMat.uniforms;
         pu.uAmount.value = amount; petals.visible = amount > 0.01;
         if (g > 0.5 || season === 2) { pu.uColA.value.set('#ffc2dc'); pu.uColB.value.set('#ffffff'); } else { pu.uColA.value.set('#e8861e'); pu.uColB.value.set('#ffcf4a'); }
+      },
+      // True when (x, z) is within m of a built trunk, bush or rock. shortcut: only the point's own chunk is searched, so a trunk over a chunk edge can be missed by under 2 m.
+      solidAt(x, z, m = 0) {
+        const e = chunks.get(chunkKey(Math.floor(x / CHUNK), Math.floor(z / CHUNK)));
+        if (!e) return false;
+        for (const [id, , data, n] of e.lists) {
+          const sp = SPECIES_BY_ID[id]; if (!sp.solid) continue;
+          const k = (id === 'rock' ? 0.8 : id === 'bush' ? 0.5 : 0.22) * sp.r;
+          for (let i = 0; i < n; i++) { const o = i * STRIDE, r = k * data[o + 4] + m; if ((data[o] - x) ** 2 + (data[o + 2] - z) ** 2 < r * r) return true; }
+        }
+        return false;
       },
       setKeepOut(fn) { env.keepOut = fn || null; chunks.clear(); dirty = true; pending = true; },
       setSnow(on) { snowTarget = on ? 1 : 0; },
