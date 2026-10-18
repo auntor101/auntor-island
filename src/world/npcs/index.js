@@ -186,7 +186,7 @@ export function createNpcs(scene, village, { heightAt, isWet, camera, audio, env
     if (talking && talking.dist > LEAVE_R) ui.close();
   }
 
-  const api = { update, npcs, stand, markers: mk, store, ui, talk: (id) => talk(npcs.find((n) => n.def.id === id)), get loadMs() { return loadMs; }, get full() { return npcs.filter((n) => n.full).length; } };
+  const api = { update, npcs, camera, stand, markers: mk, store, ui, talk: (id) => talk(npcs.find((n) => n.def.id === id)), get loadMs() { return loadMs; }, get full() { return npcs.filter((n) => n.full).length; } };
   globalThis.__npcs = api;
   return api;
 }

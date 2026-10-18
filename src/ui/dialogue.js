@@ -5,7 +5,7 @@ const CSS = `.dlg{position:absolute;left:50%;bottom:calc(96px + env(safe-area-in
 .dlg.on{opacity:1;transform:translate(-50%,0)}.dlg[hidden]{display:none}
 .dlg-name{position:absolute;left:14px;top:-17px;max-width:70%;padding:3px 14px;border:3px solid #2a1f3d;border-radius:16px;background:var(--tag,#ff7a59);font:700 italic 17px 'Fraunces',serif;color:#2a1f3d;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dlg-name:empty{display:none}
-.dlg-text{margin:0;min-height:3.1em;max-height:30vh;overflow:auto;font:700 17px/1.4 'Nunito',system-ui,sans-serif}
+.dlg-text{margin:0;min-height:2.6em;max-height:30vh;overflow:auto;font:700 17px/1.4 'Nunito',system-ui,sans-serif}
 .dlg-opts{display:flex;flex-direction:column;gap:8px;margin-top:10px}.dlg-opts:empty{display:none}
 .dlg-opts button{min-height:48px;margin:0;padding:6px 14px;border:3px solid #2a1f3d;border-radius:16px;background:#fff;color:#2a1f3d;font:800 16px/1.2 'Nunito',system-ui,sans-serif;text-align:left;box-shadow:0 3px 0 #2a1f3d;touch-action:manipulation}
 .dlg-opts button:active{background:#ff7a59}.dlg-more{position:absolute;right:14px;bottom:6px;font:800 14px 'Nunito',sans-serif;color:#ff7a59;animation:dlgb .8s infinite alternate}
