@@ -1,18 +1,17 @@
 // Pure trail network: a deterministic graph of places joined by grid A* routes over the real terrain.
 // No three.js, no DOM. buildPaths(layout) -> { pois, poi, edges, pieces, bridges, groundAt, onTrail, nearRoad, stats }.
 import { heightAt as H0, isWet as W0, waterSurfaceAt as S0, LANDMARKS, LAKE } from '../island.js';
+import { planSites } from '../landmarks/sites.js';
 
 export const CELL = 3, HALF = 168, NC = (2 * HALF) / CELL, MAX_SLOPE = 0.5, BRIDGE_W = 2.4, STEP = 1.5;
 const hyp = Math.hypot;
 
-const SITES = [
-  { id: 'academy', name: 'Academy', x: -35, z: -2 }, { id: 'arena', name: 'Arena', x: -74, z: -19 },
-  { id: 'hatchery', name: 'Hatchery', x: -62, z: -32 }, { id: 'springs', name: 'Hot Springs', x: -45, z: 80 },
-];
+// The dragon-island landmarks are placed by landmarks/sites.js (planSites); each gets a trail place at its entry point.
+const SITE_NAMES = { academy: 'Academy', arena: 'Arena', hatchery: 'Hatchery', springs: 'Hot Springs', tower: 'Wizard Tower', grove: 'Elven Grove', embers: 'Cinder Field', icecave: 'Ice Cave' };
 // Trail topology: every place joins the village hub or a neighbour, with a few loops.
 export const EDGES = [
-  ['village', 'hall'], ['village', 'dock'], ['village', 'beach'], ['beach', 'cove'], ['village', 'academy'], ['academy', 'arena'], ['arena', 'hatchery'],
-  ['hatchery', 'grove'], ['grove', 'roost'], ['village', 'springs'], ['springs', 'cove'], ['village', 'volcano'], ['volcano', 'tower'], ['village', 'mountain'], ['grove', 'mountain'],
+  ['village', 'hall'], ['village', 'dock'], ['village', 'beach'], ['beach', 'cove'], ['village', 'academy'], ['academy', 'rings'], ['academy', 'arena'], ['arena', 'hatchery'],
+  ['hatchery', 'grove'], ['grove', 'roost'], ['village', 'springs'], ['springs', 'cove'], ['village', 'volcano'], ['volcano', 'embers'], ['volcano', 'tower'], ['village', 'mountain'], ['mountain', 'icecave'], ['grove', 'mountain'],
 ];
 
 class Heap { // binary min-heap of (key, node)
@@ -42,7 +41,8 @@ export function buildPaths(L, env = {}) {
     if (h < 0.35) S[n] = 2; // sea and shore
     else if (isWet(x, z)) S[n] = inLake(x, z) || (surf(x, z) ?? 0) < 0.5 ? 2 : 1;
   }
-  for (const c of L.colliders) { // buildings and big props block (padded)
+  const LM = planSites({ heightAt, isWet }, L.keepOut, L.center);
+  for (const c of [...L.colliders, ...LM.colliders]) { // buildings, big props and landmarks block (padded)
     const pad = 1.8, ext = (c.kind === 'circle' ? c.r : hyp(c.hw, c.hd)) + pad;
     for (let j = ci(c.z - ext); j <= ci(c.z + ext); j++) for (let i = ci(c.x - ext); i <= ci(c.x + ext); i++) {
       const x = cx(i), z = cx(j);
@@ -84,9 +84,8 @@ export function buildPaths(L, env = {}) {
   const mt = foot(LANDMARKS.mountain, 26), vo = foot(LANDMARKS.volcano, 24), A = Object.fromEntries(Object.entries(L.anchors).map(([k, v]) => [k, Array.isArray(v) ? { x: v[0], z: v[1] } : v])); // layout anchors are [x, z], the village object's {x, z}
   const defs = [
     { id: 'village', name: 'Village', x: vcx, z: vcz }, { id: 'dock', name: 'Harbour', x: A.harbourDock.x, z: A.harbourDock.z }, { id: 'hall', name: 'Great Hall', x: A.greatHall.x, z: A.greatHall.z },
-    { id: 'beach', name: 'Beach', ...LANDMARKS.beach }, { id: 'cove', name: 'Cove', x: LANDMARKS.cove.x - 14, z: LANDMARKS.cove.z - 6 }, { id: 'roost', name: 'Dragon Roost', ...LANDMARKS.roost },
-    { id: 'grove', name: 'Elven Grove', ...LANDMARKS.grove }, { id: 'mountain', name: 'Mountain', ...mt }, { id: 'volcano', name: 'Volcano', ...vo }, { id: 'tower', name: 'Wizard Tower', ...LANDMARKS.tower },
-    ...SITES,
+    { id: 'beach', name: 'Beach', ...LANDMARKS.beach }, { id: 'cove', name: 'Cove', x: LANDMARKS.cove.x - 14, z: LANDMARKS.cove.z - 6 }, { id: 'roost', name: 'Dragon Roost', ...LANDMARKS.roost }, { id: 'mountain', name: 'Mountain', ...mt }, { id: 'volcano', name: 'Volcano', ...vo }, { id: 'rings', name: 'Race Rings', x: LM.rings[0].x, z: LM.rings[0].z },
+    ...LM.sites.map((q) => ({ id: q.id, name: SITE_NAMES[q.id], x: q.ex, z: q.ez })),
   ];
   const pois = defs.map((d) => { const n = snap(d.x, d.z); return { id: d.id, name: d.name, x: cx(n % NC), z: cx((n / NC) | 0), node: n, h: Hh[n] }; });
   const poi = Object.fromEntries(pois.map((p) => [p.id, p]));

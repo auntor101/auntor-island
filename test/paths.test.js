@@ -9,7 +9,7 @@ const P = buildPaths(L);
 const sig = (n) => JSON.stringify([n.pois.map((p) => [p.id, p.x, p.z]), n.pieces.map((p) => p.pts), n.bridges.map((b) => [b.x, b.z, b.y])]);
 
 test('every place is reached by its planned route', () => {
-  assert.equal(P.pois.length, 14);
+  assert.equal(P.pois.length, 17);
   assert.deepEqual(P.edges.filter((e) => !e.ok), []);
   // the graph is one connected component
   const seen = new Set(['village']);
