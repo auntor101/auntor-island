@@ -269,7 +269,22 @@ export function createLife(scene, { heightAt, isWet, zoneAt, onSfx = () => {}, i
     addShadow(s.x, y, s.z, (v.kind === 'cat' ? 0.9 : 1.2) * v.breed.scale);
   }
 
+  // Riding: the dragon companion is drawn big under the rider, at the flight pose {x,y,z,heading,bank,speed}. null = back to normal.
+  let ride = null;
+  const RIDE_K = 4;
+  function drawRide(v, dt) {
+    const h = v.holder, r = ride;
+    v.hover += (1 - v.hover) * Math.min(1, dt * 4);
+    v.fly.timeScale = 0.9 + r.speed * 0.05; v.attack.weight = 0; v.fly.weight = 1; v.mixer.update(dt);
+    for (let i = 0; i < v.wings.length; i++) twist(v.wings[i], v.wingAx[i], 0);
+    h.scale.setScalar(RIDE_K); h.position.set(r.x, r.y, r.z);
+    v.yaw = r.heading + Math.PI; h.rotation.set(0, v.yaw + v.faceAdd, 0); v.obj.rotation.set(0, 0, r.bank || 0);
+    addShadow(r.x, heightAt(r.x, r.z), r.z, 0.9 * RIDE_K);
+  }
+
   function drawCompanion(v, dt, p, camPos) {
+    if (ride && v.kind === 'dragon') return drawRide(v, dt);
+    if (v.holder.scale.x !== 1) { v.holder.scale.setScalar(1); v.obj.rotation.z = 0; }
     const c = comp, h = v.holder;
     const y = heightAt(c.x, c.z);
     if (c.moving) v.faceCam = 0;
@@ -331,7 +346,7 @@ export function createLife(scene, { heightAt, isWet, zoneAt, onSfx = () => {}, i
     for (const k in comps) if (comps[k]) comps[k].holder.visible = comps[k] === cv;
     if (cv) {
       if (!compPlaced) { comp.x = p.x + 1.5; comp.z = p.z + 2; compPlaced = true; }
-      stepCompanion(comp, dt, p, ok, rand);
+      if (ride && cv.kind === 'dragon') { comp.x = ride.x; comp.z = ride.z; comp.moving = true; } else stepCompanion(comp, dt, p, ok, rand);
       if (comp.teleported) cv.yaw = Math.atan2(p.x - comp.x, p.z - comp.z);
       if (cv.kind === 'dragon') { // chirp on settling, flap sound on take-off
         const mv = comp.moving;
@@ -400,7 +415,7 @@ export function createLife(scene, { heightAt, isWet, zoneAt, onSfx = () => {}, i
 
   const api = {
     update(dt, p, camera, palette) { lastPlayer = p || lastPlayer; update(dt, p, camera, palette); },
-    setCompanion, getCompanion: () => compKind, pet, pick, nearest: (p, d, wild) => nearest(p || lastPlayer, d, wild), befriended,
+    setRide(r) { ride = r; }, setCompanion, getCompanion: () => compKind, pet, pick, nearest: (p, d, wild) => nearest(p || lastPlayer, d, wild), befriended,
     setNightMode(on) { forceNight = on == null ? null : !!on; },
     setDragonColour(i) { if (Number.isInteger(i) && i >= 0 && i < DRAGONS.length) { save.dragon = i; writeSave(save); if (comps.dragon) { root.remove(comps.dragon.holder); comps.dragon = undefined; } } },
     ready, dispose() { disposed = true; scene?.remove?.(root); for (const c of matCache.values()) Object.values(c.cache || {}).forEach((m) => m.dispose()); matCache.clear(); },

@@ -37,7 +37,7 @@ export function stepPlayer(s, input, dt, heightAt, colliders) {
   let dx = -Math.sin(c) * iy + Math.cos(c) * ix, dz = -Math.cos(c) * iy - Math.sin(c) * ix;
   const mag = Math.min(1, Math.hypot(dx, dz));
   const len = Math.hypot(dx, dz) || 1; dx /= len; dz /= len;
-  const want = mag > 0.05 ? Math.min(1, mag / 0.6) * (input.run ? RUN : WALK) : 0, aim = Math.atan2(-dx, -dz);
+  const want = mag > 0.05 ? Math.min(1, mag / 0.6) * (input.run ? RUN : WALK) * (input.mul || 1) : 0, aim = Math.atan2(-dx, -dz);
   for (let i = 0; i < n; i++) {
     if (want > 0) heading = wrap(heading + wrap(aim - heading) * (1 - Math.exp(-TURN * h)));
     speed = want > speed ? Math.min(want, speed + ACCEL * h) : Math.max(want, speed - FRICTION * h);

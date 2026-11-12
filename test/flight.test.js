@@ -33,7 +33,7 @@ test('slow descent onto flat ground lands; fast dive crashes', () => {
   const soft = run(start({ y: 6 }), { y: -0.3 }, 6);
   assert.equal(soft.status, 'landed');
   const hard = run(start({ y: 12 }), { y: -1 }, 4);
-  assert.equal(hard.status, 'crashed');
+  assert.equal(hard.status, 'crashed'); assert.equal(hard.cause, 'ground');
 });
 
 test('cannot climb above the ceiling', () => {
@@ -43,9 +43,9 @@ test('cannot climb above the ceiling', () => {
 
 test('flying into deep water or a cliff face crashes', () => {
   const sea = run(start({ y: 3 }), { y: -1 }, 3, () => -3);
-  assert.equal(sea.status, 'crashed');
+  assert.equal(sea.status, 'crashed'); assert.equal(sea.cause, 'sea');
   const wall = run(start({ y: 10 }), {}, 2, (x, z) => (z < -20 ? 60 : 2));
-  assert.equal(wall.status, 'crashed');
+  assert.equal(wall.status, 'crashed'); assert.equal(wall.cause, 'cliff');
 });
 
 test('finished flights do not move', () => {

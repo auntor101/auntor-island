@@ -1,17 +1,18 @@
 import { Vector3 } from 'three';
 import { heightAt } from '../world/island.js';
 
-const DIST = 5.2, HEAD = 1.6, SHOULDER = 0.6, LOOK = 0.005, GROUND_GAP = 0.6, FOV_KICK = 6;
+const DIST = 5.2, HEAD = 1.6,  SHOULDER = 0.6, LOOK = 0.005, GROUND_GAP = 0.6, FOV_KICK = 6;
 const damp = (cur, goal, k, dt) => cur + (goal - cur) * (1 - Math.exp(-k * dt)); // frame-rate independent smoothing
 
 // Third-person follow camera. yaw 0 looks toward -z; drag right turns right, drag down looks down (camera rises).
 export function createCamera(camera) {
   const fov0 = camera.fov, focus = new Vector3(), vel = new Vector3(), target = new Vector3();
-  let yaw = 0, pitch = 0.3, dist = DIST, ready = false, sw = 0, yaw0 = null, sp0 = null; // sw: how far the framing has eased toward the speaker (0..1)
+  let yaw = 0, pitch = 0.3, dist = DIST, zk = 1, ready = false, sw = 0, yaw0 = null, sp0 = null; // sw: how far the framing has eased toward the speaker (0..1)
 
   return {
     get yaw() { return yaw; },
     get pitch() { return pitch; }, set pitch(v) { pitch = v; }, set yaw(v) { yaw = v; },
+    zoom: 1, // 1 on foot; larger when riding (the view eases to it)
     speaker: null, // { x, z } of whoever is talking; the view eases toward them and back
     update(p, lookDX, lookDY, dt) {
       const sk = this.speaker;
@@ -37,7 +38,8 @@ export function createCamera(camera) {
       const sy = Math.sin(yaw), cy = Math.cos(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
       const rx = cy, rz = -sy, sh = SHOULDER * Math.min(1, camera.aspect); // right; shoulder offset shrinks on narrow portrait screens
       // march from the focus out to the wanted distance; stop before the ground gets in the way
-      let want = DIST, hit = want;
+      zk = damp(zk, this.zoom, 3, dt);
+      let want = DIST * zk, hit = want;
       for (let i = 1; i <= 10; i++) {
         const t = (i / 10) * want, x = focus.x + sy * cp * t + rx * sh, z = focus.z + cy * cp * t + rz * sh;
         if (focus.y + sp * t < Math.max(heightAt(x, z), 0) + GROUND_GAP) { hit = Math.max(1.2, ((i - 1) / 10) * want); break; }

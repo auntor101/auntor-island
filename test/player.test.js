@@ -65,3 +65,8 @@ test('colliders: circle pushes out, rotated box works, omitted argument unchange
   assert.ok(Math.abs(r.x) >= 1.34 - 1e-6 || Math.abs(r.z) >= 3.34, `x ${r.x} z ${r.z}`);
   assert.deepEqual(stepPlayer(start(), { cameraYaw: 0, y: 1 }, 1 / 60, flat), stepPlayer(start(), { cameraYaw: 0, y: 1 }, 1 / 60, flat, []));
 });
+
+test('speed multiplier scales the walk target', () => {
+  const s = run(start(), { y: 1, mul: 1.25 }, 2, 1 / 60);
+  assert.ok(Math.abs(s.speed - 2.2 * 1.25) < 0.1, `speed ${s.speed}`);
+});

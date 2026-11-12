@@ -27,6 +27,11 @@ import { createMap } from './ui/map.js';
 import { spawnPoint, createPetUi, pullCamera } from './game/companion-ui.js';
 import { createNpcs } from './world/npcs/index.js';
 import { createQuests } from './game/quests.js';
+import { createRide, RIDER_Y } from './game/ride.js';
+import { createDeathCard } from './ui/death.js';
+import { createVehicles } from './world/vehicles.js';
+import { createDrive, SEAT_Y } from './game/drive.js';
+import { createVenues } from './ui/venues.js';
 
 const gl = createRenderer(document.getElementById('gl'));
 const scene = new Scene();
@@ -42,6 +47,7 @@ const stars = createStars(), moon = createMoon(), snow = createSnow(camera);
 scene.add(sky.mesh, stars.points, moon.group, water.mesh, snow.points);
 const village = createVillage(scene, { heightAt, isWet, zoneAt });
 const landmarks = createLandmarks(scene, { heightAt, isWet, zoneAt, village }); // adds its colliders and flora keep-out to village
+const vehicles = createVehicles(scene, { heightAt, isWet, colliders: village.colliders, anchor: [village.anchors.stables.x, village.anchors.stables.z] }); // the Colonel's Garage, beside the stables
 const npcs = createNpcs(scene, village, { heightAt, isWet, camera, audio: { sfx: (n, o) => audio.sfx(n, o) }, env: () => ({ state, life, hours: totalHours % 24, snow: snowK, comp: life.getCompanion() }) }); // before flora and life: they keep clear of people
 const flora = createFlora(scene, { heightAt, zoneAt, isWet, getSeason: () => 'auto' });
 let paths = null, map = null; // built a moment after the first frame (the A* takes 100 to 500 ms on a phone); flora re-seeds once it is ready
@@ -140,7 +146,7 @@ const blob = (() => {
 })();
 let hero = null, controls = null, follow = null, state = null, heroId = '';
 const inp = { x: 0, y: 0, run: false, cameraYaw: 0 };
-const game = window.__game = { bot: null, get quests() { return quests.api; }, village, life, paths: null, birds, audio, get state() { return state; }, get cam() { return follow; } }; // bot = { x, y, run } overrides the controls (tests, screenshots)
+const game = window.__game = { bot: null, get quests() { return quests.api; }, village, life, paths: null, birds, audio, get state() { return state; }, get ride() { return ride; }, get drive() { return drive; }, get venues() { return venues; }, vehicles, get death() { return death; }, get cam() { return follow; } }; // bot = { x, y, run } overrides the controls (tests, screenshots)
 
 async function startGame(char, name, comp) {
   const t0 = performance.now();
@@ -166,6 +172,19 @@ const pathsReady = new Promise((done) => setTimeout(() => {
   done();
 }, 300));
 const pet = createPetUi(hud, cv, camera, life, () => state);
+const ride = createRide(hud, { life, heightAt, onSfx: (n) => audio.sfx(n, { x: state?.x, z: state?.z }) });
+const drive = createDrive(hud, { vehicles, heightAt, colliders: village.colliders });
+const venues = createVenues(hud, localStorage, { anchors: village.anchors, onEat: (r) => {
+  audio.sfx('note-pop', { x: state.x, z: state.z });
+  note.textContent = (r.first ? 'First taste! ' : '') + 'Mmm, ' + r.item.name + ' (' + r.tried + '/' + r.total + ')';
+  note.classList.add('on'); setTimeout(() => note.classList.remove('on'), 3500);
+} });
+let crash = null; // { t, cause } from the moment a ride or drive ends badly until the death card shows
+const death = createDeathCard(document.body, localStorage, () => { // Try again: back to the village, on foot
+  const sp = spawnPoint(village, heightAt, isWet);
+  ride.dismount(); drive.reset(); crash = null;
+  state = { x: sp.x, z: sp.z, y: heightAt(sp.x, sp.z), heading: 0, speed: 0 };
+});
 const profile = loadProfile(localStorage);
 const compParam = ['dragon', 'dog', 'cat'].includes(params.get('comp')) ? params.get('comp') : null;
 const skipChar = CHARS.includes(params.get('char')) ? params.get('char') : null;
@@ -185,17 +204,37 @@ let acc = 0, rehomed = false;
 startLoop((dt, now, rawMs) => {
   if (hero) {
     const c = game.bot || controls.read();
-    inp.x = c.x; inp.y = c.y; inp.run = c.run; inp.cameraYaw = follow.yaw;
-    state = stepPlayer(state, inp, dt, heightAt, village.colliders);
+    inp.x = c.x; inp.y = c.y; inp.run = c.run; inp.cameraYaw = follow.yaw; inp.mul = venues.speedMul;
+    const act = death.open ? null : drive.near(state, !!ride.pose);
+    if (act === 'mount') drive.mount(state); else if (act === 'dismount') state = drive.dismount();
+    if (!drive.pose && !death.open && ride.near(state)) ride.mount(state);
+    const fp = ride.pose;
+    if (fp) { // flying (or sitting where the flight ended)
+      const p = fp.status === 'flying' ? ride.step(dt, c, venues.steady) : fp;
+      if (p.status === 'landed') state = ride.dismount();
+      else {
+        state = { x: p.x, z: p.z, y: p.y, heading: p.heading, speed: 0 };
+        if (p.status === 'crashed' && !crash) { crash = { t: 0, cause: p.cause }; audio.sfx('crash', { x: p.x, z: p.z }); }
+      }
+    } else if (drive.pose) { // driving a cart, trike or bike
+      const p = drive.pose.status === 'driving' ? drive.step(dt, c) : drive.pose;
+      state = { x: p.x, z: p.z, y: p.y, heading: p.heading, speed: 0 };
+      if (p.status === 'crashed' && !crash) { crash = { t: 0, cause: p.cause === 'cart' || !p.cause ? 'cart' : p.cause }; audio.sfx('crash', { x: p.x, z: p.z }); }
+    } else if (!death.open) state = stepPlayer(state, inp, dt, heightAt, village.colliders);
+    if (crash && (crash.t += dt) > 0.9 && !death.open) { audio.sfx('death', { x: state.x, z: state.z }); death.show(crash.cause); }
+    const riding = !!ride.pose, driving = !!drive.pose;
+    venues.update(dt, state, riding || driving || death.open);
+    follow.zoom = riding ? 2.6 : driving ? 1.5 : 1;
+    if (riding && !crash) follow.yaw += Math.atan2(Math.sin(state.heading - follow.yaw), Math.cos(state.heading - follow.yaw)) * Math.min(1, dt * 1.5); // swing the view behind the dragon
     follow.speaker = npcs.speaker;
-    follow.update(state, c.lookDX || 0, c.lookDY || 0, dt);
-    pullCamera(camera, state, village.colliders, heightAt);
-    const deck = paths?.groundAt(state.x, state.z); if (deck != null) state.y = deck; // walk over the plank bridges
+    follow.update(riding ? { ...state, y: state.y + RIDER_Y, speed: ride.pose.speed * 0.4 } : state, c.lookDX || 0, c.lookDY || 0, dt);
+    if (!riding && !driving) pullCamera(camera, state, village.colliders, heightAt);
+    const deck = riding ? null : paths?.groundAt(state.x, state.z); if (deck != null) state.y = deck; // walk over the plank bridges
     map?.update(state, follow.yaw);
     hero.update(dt, state.speed);
-    hero.root.position.set(state.x, state.y, state.z);
-    hero.root.rotation.y = state.heading + Math.PI; // the models face +z, the player heading 0 faces -z
-    blob.position.set(state.x, state.y + 0.04, state.z);
+    hero.root.position.set(state.x, state.y + (riding ? RIDER_Y : driving ? SEAT_Y : 0), state.z);
+    hero.root.rotation.y = state.heading + Math.PI; // driving: the hero sits on the ride facing the same way // the models face +z, the player heading 0 faces -z
+    blob.visible = !riding; blob.position.set(state.x, state.y + 0.04, state.z);
     life.update(dt, state, camera, pal);
     audioDrv.update(dt, state, totalHours, snowK);
     pet.update();
