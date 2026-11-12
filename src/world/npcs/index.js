@@ -200,6 +200,6 @@ export function createNpcs(scene, village, { heightAt, isWet, camera, audio, env
   }
 
   const api = { get speaker() { return talking; }, update, npcs, hooks, camera, stand, markers: mk, store, ui, talk: (id) => talk(npcs.find((n) => n.def.id === id)), get loadMs() { return loadMs; }, get full() { return npcs.filter((n) => n.full).length; } };
-  globalThis.__npcs = api;
+  if (import.meta.env?.DEV || import.meta.env?.VITE_DEBUG) globalThis.__npcs = api; // debug only
   return api;
 }

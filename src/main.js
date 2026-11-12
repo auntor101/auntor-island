@@ -32,7 +32,12 @@ import { createDeathCard } from './ui/death.js';
 import { createVehicles } from './world/vehicles.js';
 import { createDrive, SEAT_Y } from './game/drive.js';
 import { createVenues } from './ui/venues.js';
+import { createFestival } from './world/festival.js';
+import { createFestivalUi } from './ui/festival.js';
+import { current as festivalAt } from './game/festivals.js';
+import { track } from './analytics.js';
 
+track('visit');
 const gl = createRenderer(document.getElementById('gl'));
 const scene = new Scene();
 scene.fog = new Fog('#ffffff', 80, 260);
@@ -146,7 +151,7 @@ const blob = (() => {
 })();
 let hero = null, controls = null, follow = null, state = null, heroId = '';
 const inp = { x: 0, y: 0, run: false, cameraYaw: 0 };
-const game = window.__game = { bot: null, get quests() { return quests.api; }, village, life, paths: null, birds, audio, get state() { return state; }, get ride() { return ride; }, get drive() { return drive; }, get venues() { return venues; }, vehicles, get death() { return death; }, get cam() { return follow; } }; // bot = { x, y, run } overrides the controls (tests, screenshots)
+const game = { bot: null, get quests() { return quests.api; }, village, life, paths: null, birds, audio, get state() { return state; }, get ride() { return ride; }, get drive() { return drive; }, get venues() { return venues; }, fest, vehicles, get death() { return death; }, get cam() { return follow; } }; // bot = { x, y, run } overrides the controls (tests, screenshots)
 
 async function startGame(char, name, comp) {
   const t0 = performance.now();
@@ -162,6 +167,7 @@ async function startGame(char, name, comp) {
   note.classList.add('on');
   setTimeout(() => note.classList.remove('on'), 6000);
   game.loadMs = Math.round(performance.now() - t0);
+  track('play');
 }
 
 const pathsReady = new Promise((done) => setTimeout(() => {
@@ -175,10 +181,14 @@ const pet = createPetUi(hud, cv, camera, life, () => state);
 const ride = createRide(hud, { life, heightAt, onSfx: (n) => audio.sfx(n, { x: state?.x, z: state?.z }) });
 const drive = createDrive(hud, { vehicles, heightAt, colliders: village.colliders });
 const venues = createVenues(hud, localStorage, { anchors: village.anchors, onEat: (r) => {
+  track('eat');
   audio.sfx('note-pop', { x: state.x, z: state.z });
   note.textContent = (r.first ? 'First taste! ' : '') + 'Mmm, ' + r.item.name + ' (' + r.tried + '/' + r.total + ')';
   note.classList.add('on'); setTimeout(() => note.classList.remove('on'), 3500);
 } });
+const fest = createFestival(scene, village.layout.center, heightAt), festUi = createFestivalUi(hud, localStorage, { center: village.layout.center, onTap: () => { fest.burst(); audio.sfx('note-pop', { x: state.x, z: state.z }); }, onToast: (a, b) => { note.textContent = b ? a + ' ' + b : a; note.classList.add('on'); setTimeout(() => note.classList.remove('on'), 4500); } });
+const festParam = params.get('fest');
+let festNow;
 let crash = null; // { t, cause } from the moment a ride or drive ends badly until the death card shows
 const death = createDeathCard(document.body, localStorage, () => { // Try again: back to the village, on foot
   const sp = spawnPoint(village, heightAt, isWet);
@@ -200,14 +210,15 @@ else if (!fly) {
   });
 }
 
+if (import.meta.env.DEV || import.meta.env.VITE_DEBUG) window.__game = game; // debug hook for tests and screenshots only; absent from normal builds
 let acc = 0, rehomed = false;
 startLoop((dt, now, rawMs) => {
   if (hero) {
     const c = game.bot || controls.read();
     inp.x = c.x; inp.y = c.y; inp.run = c.run; inp.cameraYaw = follow.yaw; inp.mul = venues.speedMul;
     const act = death.open ? null : drive.near(state, !!ride.pose);
-    if (act === 'mount') drive.mount(state); else if (act === 'dismount') state = drive.dismount();
-    if (!drive.pose && !death.open && ride.near(state)) ride.mount(state);
+    if (act === 'mount') { drive.mount(state); track('drive'); } else if (act === 'dismount') state = drive.dismount();
+    if (!drive.pose && !death.open && ride.near(state)) { ride.mount(state); track('fly'); }
     const fp = ride.pose;
     if (fp) { // flying (or sitting where the flight ended)
       const p = fp.status === 'flying' ? ride.step(dt, c, venues.steady) : fp;
@@ -221,7 +232,7 @@ startLoop((dt, now, rawMs) => {
       state = { x: p.x, z: p.z, y: p.y, heading: p.heading, speed: 0 };
       if (p.status === 'crashed' && !crash) { crash = { t: 0, cause: p.cause === 'cart' || !p.cause ? 'cart' : p.cause }; audio.sfx('crash', { x: p.x, z: p.z }); }
     } else if (!death.open) state = stepPlayer(state, inp, dt, heightAt, village.colliders);
-    if (crash && (crash.t += dt) > 0.9 && !death.open) { audio.sfx('death', { x: state.x, z: state.z }); death.show(crash.cause); }
+    if (crash && (crash.t += dt) > 0.9 && !death.open) { audio.sfx('death', { x: state.x, z: state.z }); death.show(crash.cause); track('death'); }
     const riding = !!ride.pose, driving = !!drive.pose;
     venues.update(dt, state, riding || driving || death.open);
     follow.zoom = riding ? 2.6 : driving ? 1.5 : 1;
@@ -260,6 +271,9 @@ startLoop((dt, now, rawMs) => {
   else totalHours = Math.floor(totalHours / 24) * 24 + TIMES[mode];
   snowK += ((snowOn ? 1 : 0) - snowK) * Math.min(1, dt * 1.2);
   const { day, base } = applyPalette(totalHours, snowK);
+  const fn = festivalAt(totalHours, festParam); if (fn !== festNow) { festNow = fn; fest.set(fn); }
+  if (hero) festUi.set(festNow); // set() toasts, so it waits for the game to start
+  fest.update(dt); if (state) festUi.update(dt, state, !hero || !!ride.pose || !!drive.pose || death.open);
   const px = gl.stats().pixelRatio;
   const alt = Math.max(0, cp.y - heightAt(cp.x, cp.z)); // lift the fog when flying high so the island stays visible
   scene.fog.near = fogNear + 2 * alt; scene.fog.far = fogFar + 3 * alt;

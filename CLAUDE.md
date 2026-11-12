@@ -34,7 +34,10 @@ Goals (to be proven on a real phone): 60 fps flagship, at least 45 mid-range; ab
 A free code graph of `src/` lives in `graphify-out/` (git-ignored; rebuilt by git hooks or `graphify update src`). Ask it before reading files: `graphify query "what calls stepPlayer" --graph graphify-out/graph.json`, `graphify explain "createLife"`, `graphify path "main.js" "createWater"`. Install: `pip install graphifyy` (CLI `graphify`). `graphify-out/GRAPH_REPORT.md` lists the module communities.
 
 ## Known gaps
-Village, flora, animals, companion and sound exist. Still missing: trails and minimap (in progress), dragon-island landmarks, cast and quests, riding, vehicles and crash screen, festivals, analytics; real-phone performance unverified. See the roadmap.
+Built: village, flora, animals, companion, sound, trails and minimap, landmarks, cast and quests, dragon riding (src/play/flight.js, src/game/ride.js), garage vehicles (src/play/vehicle.js, src/world/vehicles.js), death card, Feast Quarter menus and Food Passport (src/game/venues.js), festivals (src/game/festivals.js), analytics worker (worker/index.js).
+Still open: ponies, real-phone and iPhone performance proof, optional Cloudflare Workers AI art, a hand-modelled building pack, flight and vehicle tuning by feel.
+Debug hooks (window.__game, __npcs) exist only in dev or when built with VITE_DEBUG=1 (PowerShell: `$env:VITE_DEBUG=1; npm run build`); tools/shoot.mjs eval and touch-check.mjs need such a build or the dev server.
+URL params for shots: ?char= ?comp= ?at= ?fest=colour|lantern|bazaar|newyear|splash|blossom|winter ?t= ?snow=.
 
 ## Deploy
 Cloudflare Pages/Workers builds with `node tools/build-site.js` (runs `vite build`) and serves `dist/` using `wrangler.jsonc`; GitHub Pages serves the same `dist/` from the `gh-pages` branch. Never publish the repo root.
