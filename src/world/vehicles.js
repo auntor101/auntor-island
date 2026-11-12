@@ -2,6 +2,7 @@
 import { Group, Mesh, BoxGeometry, CylinderGeometry, SphereGeometry } from 'three';
 import { toonMat } from './common/toon.js';
 import { clear } from '../game/companion-ui.js';
+import { hits } from '../play/vehicle.js';
 
 const M = { wood: toonMat('#a06a3c'), dark: toonMat('#3a2a2a'), coral: toonMat('#ff7a59'), cream: toonMat('#fff7ea'), ink: toonMat('#2a1f3d'), gold: toonMat('#ffd36b') };
 const box = (m, w, h, d, x, y, z) => { const o = new Mesh(new BoxGeometry(w, h, d), m); o.position.set(x, y, z); return o; };
@@ -14,15 +15,17 @@ export const BUILD = {
 };
 export const LABELS = { cart: 'cart', trike: 'trike', bike: 'bike' };
 
-// anchor = village.anchors.stables ([x,z]); the three rides line up beside it on dry, clear ground.
+// Parked heading faces away from the stables. anchor = village.anchors.stables ([x,z]); the three rides line up beside it on dry, clear ground.
 export function createVehicles(scene, { heightAt, isWet, colliders, anchor }) {
   const out = [], kinds = ['cart', 'trike', 'bike'];
   let k = 0;
+  // The 9 m straight out of a parking spot must be dry, level and free of buildings and props, so the first drive does not end in a wall.
+  const openRun = (x, z, a) => { for (let d = 1; d <= 9; d++) { const px = x + Math.cos(a) * d, pz = z + Math.sin(a) * d, h = heightAt(px, pz); if (isWet(px, pz) || Math.abs(h - heightAt(x, z)) > 0.8 || hits(colliders, px, pz)) return false; } return true; };
   for (let r = 4; r <= 12 && k < kinds.length; r += 2) for (let i = 0; i < 12 && k < kinds.length; i++) {
     const a = i * Math.PI / 6, x = anchor[0] + Math.cos(a) * r, z = anchor[1] + Math.sin(a) * r;
-    if (isWet(x, z) || heightAt(x, z) < 0.6 || out.some((v) => Math.hypot(v.home.x - x, v.home.z - z) < 3) || !colliders.every((c) => clear(c, x, z, 1.6))) continue;
+    if (isWet(x, z) || heightAt(x, z) < 0.6 || out.some((v) => Math.hypot(v.home.x - x, v.home.z - z) < 3) || !colliders.every((c) => clear(c, x, z, 1.6)) || !openRun(x, z, a)) continue;
     const mesh = BUILD[kinds[k]](); scene.add(mesh);
-    const v = { kind: kinds[k], mesh, home: { x, z, heading: a }, place(px, pz, h) { mesh.position.set(px, heightAt(px, pz), pz); mesh.rotation.y = h; }, park() { this.place(this.home.x, this.home.z, this.home.heading); } };
+    const v = { kind: kinds[k], mesh, home: { x, z, heading: Math.atan2(-Math.cos(a), -Math.sin(a)) },place(px, pz, h) { mesh.position.set(px, heightAt(px, pz), pz); mesh.rotation.y = h; }, park() { this.place(this.home.x, this.home.z, this.home.heading); } };
     v.park(); out.push(v); k++;
   }
   return out;
