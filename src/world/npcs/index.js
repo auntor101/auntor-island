@@ -81,12 +81,8 @@ export function createNpcs(scene, village, { heightAt, isWet, camera, audio, env
   const btn = document.createElement('button'); btn.className = 'talk'; btn.type = 'button'; btn.textContent = 'Talk'; btn.hidden = true;
   hudEl.append(style, btn);
 
-<<<<<<< HEAD
-  const M = new Matrix4(), Q = new Quaternion(), V = new Vector3(), S = new Vector3(), E = new Euler();
-  const hooks = {}; // quests plug in here: talk(id, ui, who, name) -> true when it spoke, mark(id) -> show a '!'
-=======
   const QY = new Quaternion(), UP = new Vector3(0, 1, 0), QX = new Quaternion(), RIGHT = new Vector3(1, 0, 0), M = new Matrix4(), Q = new Quaternion(), V = new Vector3(), S = new Vector3(), E = new Euler();
->>>>>>> p4/fixes
+  const hooks = {}; // quests plug in here: talk(id, ui, who, name) -> true when it spoke, mark(id) -> show a '!'
   let t = 0, selT = 0, started = false, near = null, talking = null, lines = 0, loadMs = 0;
 
   async function loadModels() {
@@ -203,11 +199,7 @@ export function createNpcs(scene, village, { heightAt, isWet, camera, audio, env
     if (talking && talking.dist > LEAVE_R) ui.close();
   }
 
-<<<<<<< HEAD
-  const api = { update, npcs, hooks, camera, stand, markers: mk, store, ui, talk: (id) => talk(npcs.find((n) => n.def.id === id)), get loadMs() { return loadMs; }, get full() { return npcs.filter((n) => n.full).length; } };
-=======
-  const api = { get speaker() { return talking; }, update, npcs, camera, stand, markers: mk, store, ui, talk: (id) => talk(npcs.find((n) => n.def.id === id)), get loadMs() { return loadMs; }, get full() { return npcs.filter((n) => n.full).length; } };
->>>>>>> p4/fixes
+  const api = { get speaker() { return talking; }, update, npcs, hooks, camera, stand, markers: mk, store, ui, talk: (id) => talk(npcs.find((n) => n.def.id === id)), get loadMs() { return loadMs; }, get full() { return npcs.filter((n) => n.full).length; } };
   globalThis.__npcs = api;
   return api;
 }
