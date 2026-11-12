@@ -33,7 +33,7 @@ export function createPetUi(hud, canvas, camera, life, getState) {
   hud.append(style, b);
   b.addEventListener('pointerdown', (e) => { e.preventDefault(); life.pet(); });
   const ray = new Raycaster(), ndc = new Vector2();
-  let d0 = null, on = false, t = 0;
+  let d0 = null, on = false, t = 0, cx = 0, cz = 0, since = 0; // since: when the companion last moved
   canvas.addEventListener('pointerdown', (e) => { d0 = { x: e.clientX, y: e.clientY, t: performance.now() }; });
   canvas.addEventListener('pointerup', (e) => {
     if (!on || !d0 || performance.now() - d0.t > 350 || Math.hypot(e.clientX - d0.x, e.clientY - d0.y) > 10) return;
@@ -44,6 +44,13 @@ export function createPetUi(hud, canvas, camera, life, getState) {
   });
   return {
     show(v) { on = v; if (!v) b.hidden = true; },
-    update() { if (!on) return; t = (t + 1) % 6; if (!t) b.hidden = !life.nearest(getState(), 1.6); }, // the near test runs 10 times a second
+    update() { // Pet: a wild animal within 1.6 m, or the companion within 1.6 m once it has stood still for a second
+      if (!on) return;
+      const c = life._comp?.(), now = performance.now();
+      if (c) { const x = c.holder.position.x, z = c.holder.position.z; if (Math.hypot(x - cx, z - cz) > 0.005) { cx = x; cz = z; since = now; } }
+      if (++t % 6) return; // the near test runs 10 times a second
+      const p = getState(), n = life.nearest(p, 1.6);
+      b.hidden = !(life.nearest(p, 1.6, true) || (n && n === c && now - since > 1000));
+    },
   };
 }

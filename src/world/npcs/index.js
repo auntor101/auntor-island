@@ -1,6 +1,6 @@
 // The island's people: placement, models (3 VRM loads shared by 19 people), distant stand-ins, name tags, '!' markers, Talk button, tap to talk.
 // Budget: one instanced stand-in mesh + one marker Points + at most FULL_MAX full models and TAGS_MAX tags drawn at a time.
-import { CanvasTexture, Color, Group, InstancedMesh, Matrix4, MeshLambertMaterial, Points, PointsMaterial, BufferGeometry, Float32BufferAttribute, Quaternion, Raycaster, Sphere, Sprite, SpriteMaterial, Vector2, Vector3, Euler } from 'three';
+import { CanvasTexture, Color, Group, InstancedMesh, Matrix4, MeshLambertMaterial, Points, PointsMaterial, BufferGeometry, Float32BufferAttribute, Quaternion, Raycaster, Sphere, Sprite, SpriteMaterial, Vector2, Vector3, Euler, SRGBColorSpace } from 'three';
 import { clone } from 'three/addons/utils/SkeletonUtils.js';
 import { loadCharacter, ROSTER } from '../../play/roster.js';
 import { LANDMARKS } from '../island.js';
@@ -38,13 +38,14 @@ function tint(root, look) {
 
 function makeTag(name, color) {
   const c = document.createElement('canvas'); c.width = 256; c.height = 64;
-  const g = c.getContext('2d'); g.fillStyle = '#fff7ea'; g.strokeStyle = '#2a1f3d'; g.lineWidth = 5;
-  g.beginPath(); g.roundRect(4, 6, 248, 52, 24); g.fill(); g.stroke();
+  const g = c.getContext('2d'); g.fillStyle = '#fff7ea'; g.strokeStyle = '#2a1f3d'; g.lineWidth = 8; g.shadowColor = 'rgba(20,10,40,.9)'; g.shadowBlur = 5; g.shadowOffsetY = 2; // dark rim and shadow so it reads in bright light
+  g.beginPath(); g.roundRect(6, 7, 244, 50, 24); g.fill(); g.stroke(); g.shadowColor = 'transparent';
   g.fillStyle = color; g.beginPath(); g.arc(30, 32, 10, 0, 7); g.fill(); g.stroke();
-  let px = 28; g.font = `700 ${px}px Fraunces, Georgia, serif`;
-  while (g.measureText(name).width > 180 && px > 14) g.font = `700 ${--px}px Fraunces, Georgia, serif`;
+  let px = 28; g.font = `800 ${px}px Fraunces, Georgia, serif`;
+  while (g.measureText(name).width > 180 && px > 14) g.font = `800 ${--px}px Fraunces, Georgia, serif`;
   g.fillStyle = '#2a1f3d'; g.textBaseline = 'middle'; g.fillText(name, 52, 34);
-  const s = new Sprite(new SpriteMaterial({ map: new CanvasTexture(c), transparent: true, depthWrite: false, fog: false, toneMapped: false }));
+  const tex = new CanvasTexture(c); tex.colorSpace = SRGBColorSpace; // without this the ink text washes out pale
+  const s = new Sprite(new SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false, toneMapped: false }));
   s.scale.set(1.5, 0.375, 1); s.renderOrder = 5;
   return s;
 }
@@ -59,7 +60,7 @@ function makeMarkerTexture() {
 
 export function createNpcs(scene, village, { heightAt, isWet, camera, audio, env }) {
   const plan = planNpcs(DEFS, village, heightAt, isWet);
-  const npcs = plan.map((p) => ({ ...p, h: p.def.h, group: null, yawNow: p.yaw, phase: Math.random() * 6, dist: 1e9, full: false, tag: null }));
+  const npcs = plan.map((p) => ({ ...p, h: p.def.h, group: null, yawNow: p.yaw, hy: 0, blinkIn: 1 + Math.random() * 3, blinkT: 0, phase: Math.random() * 6, dist: 1e9, full: false, tag: null }));
   for (const n of npcs) village.colliders.push({ kind: 'circle', x: n.x, z: n.z, r: NPC_R, type: 'npc' });
   const k0 = village.keepOut; // trees, bushes and animals stay a metre clear of people
   village.keepOut = (x, z, r = 0) => k0(x, z, r) || npcs.some((n) => Math.hypot(n.x - x, n.z - z) < 1.2 + r);
@@ -80,17 +81,25 @@ export function createNpcs(scene, village, { heightAt, isWet, camera, audio, env
   const btn = document.createElement('button'); btn.className = 'talk'; btn.type = 'button'; btn.textContent = 'Talk'; btn.hidden = true;
   hudEl.append(style, btn);
 
+<<<<<<< HEAD
   const M = new Matrix4(), Q = new Quaternion(), V = new Vector3(), S = new Vector3(), E = new Euler();
   const hooks = {}; // quests plug in here: talk(id, ui, who, name) -> true when it spoke, mark(id) -> show a '!'
+=======
+  const QY = new Quaternion(), UP = new Vector3(0, 1, 0), QX = new Quaternion(), RIGHT = new Vector3(1, 0, 0), M = new Matrix4(), Q = new Quaternion(), V = new Vector3(), S = new Vector3(), E = new Euler();
+>>>>>>> p4/fixes
   let t = 0, selT = 0, started = false, near = null, talking = null, lines = 0, loadMs = 0;
 
   async function loadModels() {
     const t0 = performance.now();
     for (const base of BASES) {
       let tpl; try { tpl = await loadCharacter(base); } catch (e) { console.error('npc base failed', base, e); continue; }
+      const bd = tpl.vrm.expressionManager?.getExpression('blink')?.binds?.[0]; // blink morph: mesh name + target index
       for (const n of npcs.filter((q) => q.def.base === base)) {
         const g = new Group(), body = clone(tpl.root), k = n.def.h / ROSTER[base].height;
         body.scale.set(k * (n.def.w || 1), k, k * (n.def.w || 1)); n.parts = tint(body, n.def.look);
+        const bone = (re) => { let b; body.traverse((o) => { if (!b && o.isBone && re.test(o.name)) b = o; }); return b; };
+        n.head = bone(/Head$/); n.chest = bone(/_Chest$/); n.headQ = n.head?.quaternion.clone(); n.chestQ = n.chest?.quaternion.clone();
+        body.traverse((o) => { if (bd && o.isMesh && o.name === bd.primitives[0].name && o.morphTargetInfluences) { n.blinkMesh = o; n.blinkIdx = bd.index; } });
         g.add(body); const pr = makeProps(n.def); if (pr) g.add(pr);
         g.position.set(n.x, n.y, n.z); g.rotation.y = n.yawNow; g.visible = false; n.group = g; n.body = body; scene.add(g);
       }
@@ -165,14 +174,20 @@ export function createNpcs(scene, village, { heightAt, isWet, camera, audio, env
 
   function update(dt) {
     const e = env(), st = e.state; t += dt;
-    if (st && !started) { started = true; setTimeout(loadModels, 400); }
-    const p = st || camera.position;
+    if (!started && (st || /[?&]cam=/.test(location.search))) { started = true; setTimeout(loadModels, 400); }
+    const p = st || camera.position; // the ?cam= debug camera has no player but still wants full models
     if ((selT -= dt) <= 0) { selT = 0.15; select(p.x, p.z); }
     // idle sway, face the player when close (the yaw moves the group, the stand-in follows on the next select)
     for (const n of npcs) {
       if (!n.full) continue;
-      const want = st && n.dist < LOOK_R ? Math.atan2(st.x - n.x, st.z - n.z) : n.yaw;
-      let d = want - n.yawNow; d = Math.atan2(Math.sin(d), Math.cos(d)); n.yawNow += d * Math.min(1, dt * 3);
+      const look = st && n.dist < LOOK_R, want = look ? Math.atan2(st.x - n.x, st.z - n.z) : n.yaw;
+      let d = want - n.yawNow; d = Math.atan2(Math.sin(d), Math.cos(d)); n.yawNow += d * Math.min(1, dt * 1.5);
+      // head leads the body toward the player; chest breathes; eyes blink
+      n.hy += ((look ? Math.max(-0.9, Math.min(0.9, d)) : Math.sin(t * 0.4 + n.phase) * 0.15) - n.hy) * Math.min(1, dt * 5);
+      if (n.head) n.head.quaternion.copy(n.headQ).multiply(QY.setFromAxisAngle(UP, -n.hy));
+      if (n.chest) n.chest.quaternion.copy(n.chestQ).multiply(QX.setFromAxisAngle(RIGHT, Math.sin(t * 1.6 + n.phase) * 0.03));
+      if (n.blinkMesh && (n.blinkIn -= dt) < 0) { n.blinkT = 0.18; n.blinkIn = 2.5 + Math.random() * 3; }
+      if (n.blinkMesh) { n.blinkT = Math.max(0, n.blinkT - dt); n.blinkMesh.morphTargetInfluences[n.blinkIdx] = n.blinkT > 0 ? Math.sin((1 - n.blinkT / 0.18) * Math.PI) : 0; }
       n.group.rotation.y = n.yawNow; n.body.rotation.z = Math.sin(t * 1.3 + n.phase) * 0.012; n.body.rotation.x = Math.sin(t * 0.9 + n.phase) * 0.008;
     }
     // '!' markers over people you have not met yet
@@ -188,7 +203,11 @@ export function createNpcs(scene, village, { heightAt, isWet, camera, audio, env
     if (talking && talking.dist > LEAVE_R) ui.close();
   }
 
+<<<<<<< HEAD
   const api = { update, npcs, hooks, camera, stand, markers: mk, store, ui, talk: (id) => talk(npcs.find((n) => n.def.id === id)), get loadMs() { return loadMs; }, get full() { return npcs.filter((n) => n.full).length; } };
+=======
+  const api = { get speaker() { return talking; }, update, npcs, camera, stand, markers: mk, store, ui, talk: (id) => talk(npcs.find((n) => n.def.id === id)), get loadMs() { return loadMs; }, get full() { return npcs.filter((n) => n.full).length; } };
+>>>>>>> p4/fixes
   globalThis.__npcs = api;
   return api;
 }

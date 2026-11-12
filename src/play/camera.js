@@ -7,12 +7,20 @@ const damp = (cur, goal, k, dt) => cur + (goal - cur) * (1 - Math.exp(-k * dt));
 // Third-person follow camera. yaw 0 looks toward -z; drag right turns right, drag down looks down (camera rises).
 export function createCamera(camera) {
   const fov0 = camera.fov, focus = new Vector3(), vel = new Vector3(), target = new Vector3();
-  let yaw = 0, pitch = 0.3, dist = DIST, ready = false;
+  let yaw = 0, pitch = 0.3, dist = DIST, ready = false, sw = 0, yaw0 = null, sp0 = null; // sw: how far the framing has eased toward the speaker (0..1)
 
   return {
     get yaw() { return yaw; },
     get pitch() { return pitch; }, set pitch(v) { pitch = v; }, set yaw(v) { yaw = v; },
+    speaker: null, // { x, z } of whoever is talking; the view eases toward them and back
     update(p, lookDX, lookDY, dt) {
+      const sk = this.speaker;
+      if (sk) { sp0 = sk; if (yaw0 == null) yaw0 = yaw; } else if (sw < 0.01) { sw = 0; yaw0 = null; }
+      sw = damp(sw, sk ? 1 : 0, 3, dt);
+      if (yaw0 != null) { // turn the view toward the speaker (and back to where it was)
+        const g = sk ? Math.atan2(p.x - sk.x, p.z - sk.z) : yaw0, d = Math.atan2(Math.sin(g - yaw), Math.cos(g - yaw));
+        yaw += d * Math.min(1, dt * 2.5) * (sk ? 0.5 : 1);
+      }
       yaw -= lookDX * LOOK;
       pitch = Math.max(0.05, Math.min(1.25, pitch + lookDY * LOOK));
       target.set(p.x, p.y + HEAD, p.z);
@@ -38,7 +46,8 @@ export function createCamera(camera) {
       const px = focus.x + sy * cp * dist + rx * sh, pz = focus.z + cy * cp * dist + rz * sh;
       const py = Math.max(focus.y + sp * dist, Math.max(heightAt(px, pz), 0) + GROUND_GAP);
       camera.position.set(px, py, pz);
-      camera.lookAt(focus.x + rx * sh, focus.y, focus.z + rz * sh);
+      const f = sw * 0.3, tx = sp0 ? (sp0.x - focus.x) * f : 0, tz = sp0 ? (sp0.z - focus.z) * f : 0; // look a third of the way to the speaker
+      camera.lookAt(focus.x + rx * sh + tx, focus.y, focus.z + rz * sh + tz);
       const fov = fov0 + FOV_KICK * Math.min(1, p.speed / 5.5);
       if (Math.abs(camera.fov - fov) > 0.01) { camera.fov = damp(camera.fov, fov, 6, dt); camera.updateProjectionMatrix(); }
     },

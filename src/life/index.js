@@ -359,10 +359,10 @@ export function createLife(scene, { heightAt, isWet, zoneAt, onSfx = () => {}, i
     if (cv) test(cv, comp.x, cv.holder.position.y + 0.4, comp.z, 0.8);
     return best;
   }
-  function nearest(p, maxD = 3) {
+  function nearest(p, maxD = 3, wildOnly = false) {
     let best = null, bd = maxD;
     for (const v of views) { const d = Math.hypot(v.st.x - p.x, v.st.z - p.z); if (v.holder.visible && d < bd) { bd = d; best = v; } }
-    const cv = comps[compKind];
+    const cv = !wildOnly && comps[compKind];
     if (cv && Math.hypot(comp.x - p.x, comp.z - p.z) < bd) best = cv;
     return best;
   }
@@ -400,7 +400,7 @@ export function createLife(scene, { heightAt, isWet, zoneAt, onSfx = () => {}, i
 
   const api = {
     update(dt, p, camera, palette) { lastPlayer = p || lastPlayer; update(dt, p, camera, palette); },
-    setCompanion, getCompanion: () => compKind, pet, pick, nearest: (p) => nearest(p || lastPlayer), befriended,
+    setCompanion, getCompanion: () => compKind, pet, pick, nearest: (p, d, wild) => nearest(p || lastPlayer, d, wild), befriended,
     setNightMode(on) { forceNight = on == null ? null : !!on; },
     setDragonColour(i) { if (Number.isInteger(i) && i >= 0 && i < DRAGONS.length) { save.dragon = i; writeSave(save); if (comps.dragon) { root.remove(comps.dragon.holder); comps.dragon = undefined; } } },
     ready, dispose() { disposed = true; scene?.remove?.(root); for (const c of matCache.values()) Object.values(c.cache || {}).forEach((m) => m.dispose()); matCache.clear(); },

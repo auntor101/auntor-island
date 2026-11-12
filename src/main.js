@@ -187,6 +187,7 @@ startLoop((dt, now, rawMs) => {
     const c = game.bot || controls.read();
     inp.x = c.x; inp.y = c.y; inp.run = c.run; inp.cameraYaw = follow.yaw;
     state = stepPlayer(state, inp, dt, heightAt, village.colliders);
+    follow.speaker = npcs.speaker;
     follow.update(state, c.lookDX || 0, c.lookDY || 0, dt);
     pullCamera(camera, state, village.colliders, heightAt);
     const deck = paths?.groundAt(state.x, state.z); if (deck != null) state.y = deck; // walk over the plank bridges
