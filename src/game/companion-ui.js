@@ -26,7 +26,7 @@ export function pullCamera(camera, p, cols, heightAt) {
   cp.set(p.x + dx * 0.15, hy + dy * 0.15, p.z + dz * 0.15);
 }
 
-const CSS = `.pet{position:absolute;left:calc(50% + 8px);bottom:calc(28px + env(safe-area-inset-bottom));min-width:84px;min-height:52px;margin:0;padding:0 16px;border:3px solid #2a1f3d;border-radius:26px;background:#fff7ea;color:#2a1f3d;font:800 16px 'Nunito',system-ui,sans-serif;box-shadow:0 3px 0 #2a1f3d;touch-action:manipulation}.pet:active{background:#ff7a59}.pet[hidden]{display:none}`;
+const CSS = `#hud .pet{position:absolute;left:calc(50% + 8px);bottom:calc(28px + env(safe-area-inset-bottom));min-width:84px;min-height:52px;margin:0;padding:0 16px;border:3px solid #2a1f3d;border-radius:26px;background:#fff7ea;color:#2a1f3d;font:800 16px 'Nunito',system-ui,sans-serif;box-shadow:0 3px 0 #2a1f3d;touch-action:manipulation}#hud .pet:active{background:#ff7a59}#hud .pet[hidden]{display:none}`;
 export function createPetUi(hud, canvas, camera, life, getState) {
   const style = document.createElement('style'); style.textContent = CSS;
   const b = document.createElement('button'); b.className = 'pet'; b.textContent = 'Pet'; b.hidden = true; b.type = 'button';

@@ -2,7 +2,7 @@
 import { stepVehicle, KINDS } from '../play/vehicle.js';
 
 export const SEAT_Y = 0.55, NEAR = 3;
-const CSS = `.drive{position:absolute;left:calc(50% - 92px);bottom:calc(92px + env(safe-area-inset-bottom));min-width:96px;min-height:52px;margin:0;padding:0 16px;border:3px solid #2a1f3d;border-radius:26px;background:#9be3b0;color:#2a1f3d;font:800 16px 'Nunito',system-ui,sans-serif;box-shadow:0 3px 0 #2a1f3d;touch-action:manipulation}.drive:active{background:#ff7a59}.drive[hidden]{display:none}`;
+const CSS = `#hud .drive{position:absolute;left:calc(50% - 92px);bottom:calc(92px + env(safe-area-inset-bottom));min-width:96px;min-height:52px;margin:0;padding:0 16px;border:3px solid #2a1f3d;border-radius:26px;background:#9be3b0;color:#2a1f3d;font:800 16px 'Nunito',system-ui,sans-serif;box-shadow:0 3px 0 #2a1f3d;touch-action:manipulation}#hud .drive:active{background:#ff7a59}#hud .drive[hidden]{display:none}`;
 
 export function createDrive(hud, { vehicles, heightAt, colliders }) {
   const style = document.createElement('style'); style.textContent = CSS;

@@ -13,7 +13,8 @@
 <style>
 :root { --cream:#fff7ea; --ink:#2a1f3d; --coral:#ff7a59; --display:'Fraunces',serif; --body:'Nunito',system-ui,sans-serif; }
 * { box-sizing:border-box; }
-html, body { margin:0; height:100%; overflow:hidden; background:var(--cream); color:var(--ink); font-family:var(--body); }
+html, body { margin:0; height:100%; height:100dvh; overflow:hidden; overscroll-behavior:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; background:var(--cream); color:var(--ink); font-family:var(--body); }
+button:focus:not(:focus-visible) { outline:none; }
 #gl { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; }
 #hud { position:fixed; inset:0; pointer-events:none; padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
 #hud button, #hud pre { pointer-events:auto; }

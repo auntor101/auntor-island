@@ -67,6 +67,7 @@ export function createControls(canvas, root) {
   addEventListener('keydown', kd); addEventListener('keyup', ku); addEventListener('blur', clear);
 
   return {
+    label(t) { if (runBtn.textContent !== t) runBtn.textContent = t; }, // 'Run' on foot, 'Boost' in flight
     read() {
       let kx = 0, ky = 0;
       for (const k of keys) if (KEYS[k]) { kx += KEYS[k][0]; ky += KEYS[k][1]; }

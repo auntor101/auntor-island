@@ -7,8 +7,8 @@ const lcg = (seed) => () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 const chan = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
 const yes = () => true;
 
-test('breeds: 10 cats, 7 dogs, 4 dragon colourways, unique names, hex colours', () => {
-  assert.equal(CATS.length, 10); assert.equal(DOGS.length, 7); assert.equal(DRAGONS.length, 4);
+test('breeds: 10 cats, 7 dogs, 5 dragon colourways (the first is the black Shadewing), unique names, hex colours', () => {
+  assert.equal(CATS.length, 10); assert.equal(DOGS.length, 7); assert.equal(DRAGONS.length, 5); assert.equal(DRAGONS[0].name, 'Shadewing');
   for (const l of [CATS, DOGS, DRAGONS]) assert.equal(new Set(l.map((b) => b.name)).size, l.length);
   for (const b of [...CATS, ...DOGS]) assert.ok(/^#[0-9a-f]{6}$/i.test(b.body) && /^#[0-9a-f]{6}$/i.test(b.accent) && b.scale > 0.7 && b.scale < 1.4, b.name);
 });

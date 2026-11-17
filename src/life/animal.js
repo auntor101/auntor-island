@@ -24,6 +24,7 @@ export const DOGS = [
 ].map((b) => ({ ...b, accent: b.body, kind: 'dog' }));
 // The baby dragon's own species, four colourways.
 export const DRAGONS = [
+  { name: 'Shadewing', body: '#1c1c26', belly: '#34344a', wing: '#262634', eye: '#6bff7a' },
   { name: 'Emberling', body: '#c8553d', belly: '#f0b86a', wing: '#e0784a' },
   { name: 'Frostling', body: '#5a8fc8', belly: '#cfe6f4', wing: '#8cc0e8' },
   { name: 'Mossling', body: '#5f9a5a', belly: '#e0d49a', wing: '#8cc070' },

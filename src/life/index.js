@@ -62,7 +62,7 @@ function coatOf(kind, breed) {
   if (!matCache.has(key)) {
     const c = (h) => capBright(h), pick = (n) => {
       n = (n || '').toLowerCase();
-      if (kind === 'dragon') return c(n.includes('wing') ? breed.wing : n.includes('belly') ? breed.belly : n.includes('claw') ? '#efe3c8' : n.includes('eye') ? '#1b1220' : breed.body);
+      if (kind === 'dragon') return c(n.includes('wing') ? breed.wing : n.includes('belly') ? breed.belly : n.includes('claw') ? '#efe3c8' : n.includes('eye') ? (breed.eye || '#1b1220') : breed.body);
       return c(n.includes('white') ? breed.accent : n.includes('pink') ? '#e9a3a8' : breed.body);
     };
     matCache.set(key, (name) => toonMat(pick(name)));

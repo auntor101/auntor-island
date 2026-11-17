@@ -219,7 +219,7 @@ startLoop((dt, now, rawMs) => {
     inp.x = c.x; inp.y = c.y; inp.run = c.run; inp.cameraYaw = follow.yaw; inp.mul = venues.speedMul;
     const act = death.open ? null : drive.near(state, !!ride.pose);
     if (act === 'mount') { drive.mount(state); track('drive'); } else if (act === 'dismount') state = drive.dismount();
-    if (!drive.pose && !death.open && ride.near(state)) { ride.mount(state); track('fly'); }
+    if (!drive.pose && !death.open && ride.near(state)) { ride.mount(state); track('fly'); note.textContent = 'Stick: steer and climb. Hold Boost to speed up.'; note.classList.add('on'); setTimeout(() => note.classList.remove('on'), 5000); }
     const fp = ride.pose;
     if (fp) { // flying (or sitting where the flight ended)
       const p = fp.status === 'flying' ? ride.step(dt, c, venues.steady) : fp;
@@ -237,6 +237,7 @@ startLoop((dt, now, rawMs) => {
     const riding = !!ride.pose, driving = !!drive.pose;
     venues.update(dt, state, riding || driving || death.open);
     follow.zoom = riding ? 2.6 : driving ? 1.5 : 1;
+    controls.label(riding ? 'Boost' : 'Run');
     if (riding && !crash) follow.yaw += Math.atan2(Math.sin(state.heading - follow.yaw), Math.cos(state.heading - follow.yaw)) * Math.min(1, dt * 1.5); // swing the view behind the dragon
     follow.speaker = npcs.speaker;
     follow.update(riding ? { ...state, y: state.y + RIDER_Y, speed: ride.pose.speed * 0.4 } : state, c.lookDX || 0, c.lookDY || 0, dt);
