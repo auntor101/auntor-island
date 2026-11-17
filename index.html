@@ -15,6 +15,15 @@
 * { box-sizing:border-box; }
 html, body { margin:0; height:100%; height:100dvh; overflow:hidden; overscroll-behavior:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; background:var(--cream); color:var(--ink); font-family:var(--body); }
 button:focus:not(:focus-visible) { outline:none; }
+/* landscape phones: contextual buttons stack in a column beside Run so they never cover the hero */
+@media (orientation:landscape) and (max-height:520px) {
+  #hud button.fly, #hud button.pet, #hud button.eat, #hud button.drive, #hud button.fest { left:auto; right:calc(92px + env(safe-area-inset-right)); transform:none; min-width:104px; }
+  #hud button.pet { bottom:calc(12px + env(safe-area-inset-bottom)); }
+  #hud button.fly { bottom:calc(70px + env(safe-area-inset-bottom)); }
+  #hud button.eat { bottom:calc(128px + env(safe-area-inset-bottom)); }
+  #hud button.drive { bottom:calc(186px + env(safe-area-inset-bottom)); }
+  #hud button.fest { bottom:calc(244px + env(safe-area-inset-bottom)); }
+}
 #gl { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; }
 #hud { position:fixed; inset:0; pointer-events:none; padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
 #hud button, #hud pre { pointer-events:auto; }
