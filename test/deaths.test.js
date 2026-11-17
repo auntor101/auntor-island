@@ -22,3 +22,10 @@ test('corrupt or hostile storage is ignored', () => {
 });
 
 test('every cause has a line of text', () => { for (const k in CAUSES) assert.ok(CAUSES[k].length > 10); });
+
+import { refine } from '../src/game/deaths.js';
+test('a crash in the crater is fire, elsewhere keeps its cause', () => {
+  const v = { x: 98, z: 8 };
+  assert.equal(refine('cliff', 100, 10, v), 'fire');
+  assert.equal(refine('cliff', 140, 10, v), 'cliff');
+});

@@ -26,4 +26,6 @@ export function record(store, cause) {
   return log;
 }
 
+// A crash inside the volcano crater is always the lava, whatever the vehicle hit.
+export const refine = (cause, x, z, volcano, r = 12) => (Math.hypot(x - volcano.x, z - volcano.z) < r ? 'fire' : cause);
 export const total = (log) => Object.values(log).reduce((a, b) => a + b, 0);

@@ -29,6 +29,7 @@ import { createNpcs } from './world/npcs/index.js';
 import { createQuests } from './game/quests.js';
 import { createRide, RIDER_Y } from './game/ride.js';
 import { createDeathCard } from './ui/death.js';
+import { refine } from './game/deaths.js';
 import { createVehicles } from './world/vehicles.js';
 import { createDrive, SEAT_Y } from './game/drive.js';
 import { createVenues } from './ui/venues.js';
@@ -225,12 +226,12 @@ startLoop((dt, now, rawMs) => {
       if (p.status === 'landed') state = ride.dismount();
       else {
         state = { x: p.x, z: p.z, y: p.y, heading: p.heading, speed: 0 };
-        if (p.status === 'crashed' && !crash) { crash = { t: 0, cause: p.cause }; audio.sfx('crash', { x: p.x, z: p.z }); }
+        if (p.status === 'crashed' && !crash) { crash = { t: 0, cause: refine(p.cause, p.x, p.z, LANDMARKS.volcano) }; audio.sfx('crash', { x: p.x, z: p.z }); }
       }
     } else if (drive.pose) { // driving a cart, trike or bike
       const p = drive.pose.status === 'driving' ? drive.step(dt, c) : drive.pose;
       state = { x: p.x, z: p.z, y: p.y, heading: p.heading, speed: 0 };
-      if (p.status === 'crashed' && !crash) { crash = { t: 0, cause: p.cause === 'cart' || !p.cause ? 'cart' : p.cause }; audio.sfx('crash', { x: p.x, z: p.z }); }
+      if (p.status === 'crashed' && !crash) { crash = { t: 0, cause: refine(p.cause || 'cart', p.x, p.z, LANDMARKS.volcano) }; audio.sfx('crash', { x: p.x, z: p.z }); }
     } else if (!death.open) state = stepPlayer(state, inp, dt, heightAt, village.colliders);
     if (crash && (crash.t += dt) > 0.9 && !death.open) { audio.sfx('death', { x: state.x, z: state.z }); death.show(crash.cause); track('death'); }
     const riding = !!ride.pose, driving = !!drive.pose;
