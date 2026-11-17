@@ -39,6 +39,7 @@ import { current as festivalAt } from './game/festivals.js';
 import { track } from './analytics.js';
 
 track('visit');
+const store = (() => { try { const s = window.localStorage; s.getItem('x'); return s; } catch { return { getItem: () => null, setItem() {} }; } })(); // private mode or blocked storage must not stop the game
 const gl = createRenderer(document.getElementById('gl'));
 const scene = new Scene();
 scene.fog = new Fog('#ffffff', 80, 260);
@@ -139,6 +140,15 @@ createAudioButton(skyHud.root, audio).el.style.margin = '8px';
 btn.after(skyHud.root.lastChild); // Sky, stats, sound stack in one column; the stats text panel stays last
 const note = document.createElement('div');
 note.className = 'note';
+// One message at a time, so the welcome, festival, food and flight hints never overwrite each other.
+const sayQ = []; let sayBusy = false;
+function say(text, ms = 4000) { sayQ.push([text, ms]); sayNext(); }
+function sayNext() {
+  if (sayBusy || !sayQ.length) return;
+  sayBusy = true; const [t, ms] = sayQ.shift();
+  note.textContent = t; note.classList.add('on');
+  setTimeout(() => { note.classList.remove('on'); setTimeout(() => { sayBusy = false; sayNext(); }, 400); }, ms);
+}
 hud.append(note);
 
 // The hero: a soft blob shadow (one transparent disc), the character from the roster, walking physics, follow camera.
@@ -164,9 +174,7 @@ async function startGame(char, name, comp) {
   pet.show(true);
   controls = createControls(cv, hud); follow = createCamera(camera);
   blob.visible = true;
-  note.textContent = 'Welcome to Auntor Island, ' + name;
-  note.classList.add('on');
-  setTimeout(() => note.classList.remove('on'), 6000);
+  say('Welcome to Auntor Island, ' + name, 4500);
   game.loadMs = Math.round(performance.now() - t0);
   track('play');
 }
@@ -175,28 +183,27 @@ const pathsReady = new Promise((done) => setTimeout(() => {
   paths = createPaths(scene, village.layout, { heightAt, isWet, zoneAt, waterSurfaceAt });
   game.paths = paths;
   flora.setKeepOut((x, z, r = 0) => village.keepOut(x, z, r) || paths.keepOut(x, z, r)); // no trees or bushes on trails
-  map = createMap(hud, { net: paths.net, heightAt, zoneAt, isWet, onTravel: (x, z) => { state.x = x; state.z = z; state.y = heightAt(x, z); state.speed = 0; } });
+  map = createMap(hud, { net: paths.net, heightAt, zoneAt, isWet, onTravel: (x, z) => { if (ride.pose || drive.pose) { say('Land or hop off first to travel.', 2500); return; } state.x = x; state.z = z; state.y = heightAt(x, z); state.speed = 0; } });
   done();
 }, 300));
 const pet = createPetUi(hud, cv, camera, life, () => state);
-const ride = createRide(hud, { life, heightAt, onSfx: (n) => audio.sfx(n, { x: state?.x, z: state?.z }) });
+const ride = createRide(hud, { colliders: village.colliders, life, heightAt, onSfx: (n) => audio.sfx(n, { x: state?.x, z: state?.z }) });
 const drive = createDrive(hud, { vehicles, heightAt, colliders: village.colliders });
-const venues = createVenues(hud, localStorage, { anchors: village.anchors, onEat: (r) => {
+const venues = createVenues(hud, store, { anchors: village.anchors, onEat: (r) => {
   track('eat');
   audio.sfx('note-pop', { x: state.x, z: state.z });
-  note.textContent = (r.first ? 'First taste! ' : '') + 'Mmm, ' + r.item.name + ' (' + r.tried + '/' + r.total + ')';
-  note.classList.add('on'); setTimeout(() => note.classList.remove('on'), 3500);
+  say((r.first ? 'First taste! ' : '') + 'Mmm, ' + r.item.name + ' (' + r.tried + '/' + r.total + ')', 3500);
 } });
-const fest = createFestival(scene, village.layout.center, heightAt), festUi = createFestivalUi(hud, localStorage, { center: village.layout.center, onTap: () => { fest.burst(); audio.sfx('note-pop', { x: state.x, z: state.z }); }, onToast: (a, b) => { note.textContent = b ? a + ' ' + b : a; note.classList.add('on'); setTimeout(() => note.classList.remove('on'), 4500); } });
+const fest = createFestival(scene, village.layout.center, heightAt), festUi = createFestivalUi(hud, store, { center: village.layout.center, onTap: () => { fest.burst(); audio.sfx('note-pop', { x: state.x, z: state.z }); }, onToast: (a, b) => say(b ? a + ' ' + b : a, 4500) });
 const festParam = params.get('fest');
 let festNow;
 let crash = null; // { t, cause } from the moment a ride or drive ends badly until the death card shows
-const death = createDeathCard(document.body, localStorage, () => { // Try again: back to the village, on foot
+const death = createDeathCard(document.body, store, () => { // Try again: back to the village, on foot
   const sp = spawnPoint(village, heightAt, isWet);
   ride.dismount(); drive.reset(); crash = null;
   state = { x: sp.x, z: sp.z, y: heightAt(sp.x, sp.z), heading: 0, speed: 0 };
 });
-const profile = loadProfile(localStorage);
+const profile = loadProfile(store);
 const compParam = ['dragon', 'dog', 'cat'].includes(params.get('comp')) ? params.get('comp') : null;
 const skipChar = CHARS.includes(params.get('char')) ? params.get('char') : null;
 let select = null;
@@ -205,7 +212,7 @@ if (skipChar) startGame(skipChar, sanitizeName(params.get('name')), compParam);
 else if (!fly) {
   select = createSelect(document.getElementById('ui'), { ...profile, comp: compParam || life.getCompanion() }, async (p) => {
     audio.unlock(); // inside the Start tap
-    saveProfile(localStorage, p);
+    saveProfile(store, p);
     select.busy(true, 'Loading...');
     try { await startGame(p.char, p.name, p.comp); select.hide(); select = null; hud.style.visibility = ''; } catch (e) { console.error(e); select.busy(false, 'Try again'); }
   });
@@ -217,9 +224,10 @@ startLoop((dt, now, rawMs) => {
   if (hero) {
     const c = game.bot || controls.read();
     inp.x = c.x; inp.y = c.y; inp.run = c.run; inp.cameraYaw = follow.yaw; inp.mul = venues.speedMul;
-    const act = death.open ? null : drive.near(state, !!ride.pose);
+    const talking = npcs.ui.open || venues.open; // no mounting mid-conversation or with a menu open
+    const act = death.open || talking ? null : drive.near(state, !!ride.pose);
     if (act === 'mount') { drive.mount(state); track('drive'); } else if (act === 'dismount') state = drive.dismount();
-    if (!drive.pose && !death.open && ride.near(state)) { ride.mount(state); track('fly'); note.textContent = 'Stick: steer and climb. Hold Boost to speed up.'; note.classList.add('on'); setTimeout(() => note.classList.remove('on'), 5000); }
+    if (!drive.pose && !death.open && !talking && ride.near(state)) { ride.mount(state); track('fly'); say('Stick: steer and climb. Hold Boost to speed up.', 5000); }
     const fp = ride.pose;
     if (fp) { // flying (or sitting where the flight ended)
       const p = fp.status === 'flying' ? ride.step(dt, c, venues.steady) : fp;

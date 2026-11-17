@@ -52,3 +52,16 @@ test('finished flights do not move', () => {
   const s = run(start({ status: 'landed' }), { y: 1 }, 1);
   assert.equal(s.z, 0);
 });
+
+test('past the world limit the dragon turns back toward the centre', () => {
+  const s = run(start({ x: 300, z: 0, heading: -Math.PI / 2 }), {}, 6); // flying east, away from the island
+  assert.ok(Math.hypot(s.x, s.z) < 300, `still going out: ${s.x}`);
+});
+
+test('buildings are solid below roof height, only when colliders are passed', () => {
+  const house = [{ kind: 'box', x: 0, z: -20, hw: 4, hd: 4, rot: 0 }];
+  const runC = (s, secs, cols) => { for (let t = 0; t < secs; t += 1 / 60) s = stepFlight(s, { x: 0, y: 0, boost: false }, 1 / 60, flat, cols); return s; };
+  assert.equal(runC(start({ y: 5 }), 3, house).cause, 'cliff');
+  assert.equal(runC(start({ y: 5 }), 3, null).status, 'flying');
+  assert.equal(runC(start({ y: 30 }), 3, house).status, 'flying'); // over the roof
+});

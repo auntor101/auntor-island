@@ -20,7 +20,7 @@ const CSS = `
 .mm .mm-dist{position:absolute;left:50%;top:100%;transform:translateX(-50%);margin-top:1px;font:800 11px 'Nunito',system-ui,sans-serif;color:#2a1f3d;white-space:nowrap;text-shadow:0 0 3px #fff7ea,0 0 3px #fff7ea}
 .mm-full{position:fixed;inset:0;z-index:6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:max(10px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom));background:rgba(42,31,61,.55);pointer-events:auto;touch-action:manipulation}
 .mm-full[hidden]{display:none}
-.mm-full canvas{border:3px solid #2a1f3d;border-radius:18px;background:#bfe3f2;max-width:100%;touch-action:manipulation}
+.mm-full canvas{border:3px solid #2a1f3d;border-radius:18px;background:#bfe3f2;max-width:100%;max-height:calc(100dvh - 130px);touch-action:manipulation}
 .mm-bar{display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 8px 6px 16px;border:3px solid #2a1f3d;border-radius:26px;background:#fff7ea;color:#2a1f3d;font:800 16px 'Nunito',system-ui,sans-serif}
 #hud .mm-full button, .mm-full .mm-bar button{min-height:44px;margin:0;padding:0 16px;border:3px solid #2a1f3d;border-radius:22px;background:#ff7a59;color:#2a1f3d;font:800 15px 'Nunito',system-ui,sans-serif}
 .mm-full .mm-bar button[hidden]{display:none}
