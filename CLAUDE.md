@@ -35,7 +35,7 @@ A free code graph of `src/` lives in `graphify-out/` (git-ignored; rebuilt by gi
 
 ## Known gaps
 Built: village, flora, animals, companion, sound, trails and minimap, landmarks, cast and quests, dragon riding (src/play/flight.js, src/game/ride.js), garage vehicles (src/play/vehicle.js, src/world/vehicles.js), death card, Feast Quarter menus and Food Passport (src/game/venues.js), festivals (src/game/festivals.js), analytics worker (worker/index.js).
-Still open: ponies, real-phone and iPhone performance proof, optional Cloudflare Workers AI art, a hand-modelled building pack, flight and vehicle tuning by feel.
+Ponies exist as a procedural toon ride at the stables (swap in a licensed horse model later). Still open: real-phone and iPhone performance proof, optional Cloudflare Workers AI art, a hand-modelled building pack, flight and vehicle tuning by feel.
 Debug hooks (window.__game, __npcs) exist only in dev or when built with VITE_DEBUG=1 (PowerShell: `$env:VITE_DEBUG=1; npm run build`); tools/shoot.mjs eval and touch-check.mjs need such a build or the dev server.
 URL params for shots: ?char= ?comp= ?at= ?fest=colour|lantern|bazaar|newyear|splash|blossom|winter ?t= ?snow=.
 

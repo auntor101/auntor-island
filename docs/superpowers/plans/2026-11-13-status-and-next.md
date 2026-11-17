@@ -11,7 +11,7 @@ Checked against `git log`, `src/` and the master roadmap. Tests: 135 pass; build
 - Dragon riding (flight physics, mount, camera, landing), death card with Ways I Died, garage cart/trike/bike, Feast Quarter menus + Food Passport + buffs, festivals with a shared splash game, anonymous analytics worker, debug hooks gated.
 
 ## Left
-1. Ponies at the Stables (needs a horse model; licence check).
+1. A licensed horse model to replace the procedural pony (optional).
 2. Real-phone and iPhone test, tuning of flight and vehicle feel (owner).
 3. Cloudflare authorisation and first deploy with the worker.
 

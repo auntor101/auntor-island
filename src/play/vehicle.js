@@ -1,5 +1,6 @@
 // Pure ground-vehicle physics (cart, trike, motorbike). heading 0 faces -z. Hitting something hard crashes; hitting it gently just stops.
 export const KINDS = {
+  pony: { max: 7, accel: 3.5, turn: 2.2, brake: 9, name: 'Stable pony' },
   cart: { max: 8, accel: 3, turn: 1.4, brake: 8, name: 'Colonel\'s cart' },
   trike: { max: 11, accel: 4.5, turn: 1.8, brake: 9, name: 'Rattle trike' },
   bike: { max: 16, accel: 6, turn: 2.1, brake: 10, name: 'Thunder bike' },
